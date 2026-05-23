@@ -1,0 +1,85 @@
+"use client";
+
+import { useState } from "react";
+import { approvePayment } from "@/app/actions/events";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+
+type Approval = {
+  paymentStatusId: string;
+  eventTitle: string;
+  displayName: string;
+  amount: number;
+  subStatus: string | null;
+};
+
+export function ApproveList({
+  approvals,
+  groupId,
+}: {
+  approvals: Approval[];
+  groupId: string;
+}) {
+  const [processed, setProcessed] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleAction(paymentStatusId: string, action: "approve" | "reject") {
+    setError(null);
+    const result = await approvePayment(paymentStatusId, groupId, action);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setProcessed((prev) => new Set(prev).add(paymentStatusId));
+  }
+
+  const pending = approvals.filter((a) => !processed.has(a.paymentStatusId));
+
+  return (
+    <div>
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md mb-3">{error}</p>
+      )}
+      {pending.length === 0 ? (
+        <p className="text-sm text-gray-500 text-center py-8">
+          承認待ちの申告はありません
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {pending.map((a) => (
+            <Card key={a.paymentStatusId}>
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-medium">{a.displayName}</p>
+                    <p className="text-sm text-gray-500">{a.eventTitle}</p>
+                  </div>
+                  <span className="font-semibold">{a.amount.toLocaleString()}円</span>
+                </div>
+                {a.subStatus && (
+                  <p className="text-xs text-gray-400 mb-2">memo: {a.subStatus}</p>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleAction(a.paymentStatusId, "approve")}
+                  >
+                    承認
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleAction(a.paymentStatusId, "reject")}
+                  >
+                    差戻し
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

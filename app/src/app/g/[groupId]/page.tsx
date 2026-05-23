@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { InviteLinkSection } from "./invite-link-section";
 import { JoinRequestList } from "./join-request-list";
 
@@ -15,78 +16,140 @@ export default async function GroupHomePage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
-    .from("memberships")
-    .select("role")
-    .eq("group_id", groupId)
-    .eq("user_id", user.id)
-    .single();
+  const [{ data: membership }, { data: group }] = await Promise.all([
+    supabase
+      .from("memberships")
+      .select("role")
+      .eq("group_id", groupId)
+      .eq("user_id", user.id)
+      .single(),
+    supabase
+      .from("groups")
+      .select("name")
+      .eq("id", groupId)
+      .single(),
+  ]);
 
   if (!membership) redirect("/groups");
 
-  const { data: group } = await supabase
-    .from("groups")
-    .select("name")
-    .eq("id", groupId)
-    .single();
-
-  const { data: members } = await supabase
-    .from("memberships")
-    .select("user_id, role, profiles(display_name)")
-    .eq("group_id", groupId);
-
+  const isLeaderOrMod = membership.role === "leader" || membership.role === "moderator";
   const isLeader = membership.role === "leader";
 
-  let joinRequests: { id: string; display_name: string; created_at: string }[] = [];
-  if (isLeader) {
-    const { data } = await supabase
-      .from("join_requests")
-      .select("id, user_id, created_at, profiles(display_name)")
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const [{ data: events }, joinRequestsResult] = await Promise.all([
+    supabase
+      .from("events")
+      .select("id, title, amount, due_date, month, created_at")
       .eq("group_id", groupId)
-      .eq("status", "pending")
-      .order("created_at", { ascending: true });
-    joinRequests = (data ?? []).map((r) => ({
-      id: r.id,
-      display_name: (r.profiles as unknown as { display_name: string }).display_name,
-      created_at: r.created_at,
-    }));
+      .eq("month", currentMonth)
+      .order("created_at", { ascending: false }),
+    isLeader
+      ? supabase
+          .from("join_requests")
+          .select("id, user_id, created_at, profiles(display_name)")
+          .eq("group_id", groupId)
+          .eq("status", "pending")
+          .order("created_at", { ascending: true })
+      : Promise.resolve({ data: null }),
+  ]);
+
+  let eventStats: Record<string, { total: number; paid: number; claimed: number }> = {};
+  if (events && events.length > 0) {
+    const eventIds = events.map((e) => e.id);
+    const { data: statuses } = await supabase
+      .from("payment_statuses")
+      .select("event_id, status")
+      .in("event_id", eventIds);
+
+    for (const s of statuses ?? []) {
+      if (!eventStats[s.event_id]) {
+        eventStats[s.event_id] = { total: 0, paid: 0, claimed: 0 };
+      }
+      eventStats[s.event_id].total++;
+      if (s.status === "paid") eventStats[s.event_id].paid++;
+      if (s.status === "claimed") eventStats[s.event_id].claimed++;
+    }
   }
 
-  const roleLabels: Record<string, string> = {
-    leader: "部長",
-    moderator: "権限者",
-    member: "一般員",
+  const joinRequests = (joinRequestsResult.data ?? []).map((r) => ({
+    id: r.id,
+    display_name: (r.profiles as unknown as { display_name: string }).display_name,
+    created_at: r.created_at,
+  }));
+
+  const statusLabel: Record<string, string> = {
+    unpaid: "未払い",
+    claimed: "申告中",
+    paid: "済",
   };
 
   return (
-    <div className="flex min-h-full flex-col px-4 py-8">
+    <div className="flex min-h-full flex-col px-4 py-6">
       <div className="mx-auto w-full max-w-md space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">{group?.name}</h1>
           <Link href="/groups">
-            <Button variant="ghost" size="sm">戻る</Button>
+            <Button variant="ghost" size="sm">切替</Button>
           </Link>
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold mb-3">メンバー ({members?.length ?? 0}人)</h2>
-          <div className="space-y-2">
-            {(members ?? []).map((m) => {
-              const profile = m.profiles as unknown as { display_name: string };
-              return (
-                <div
-                  key={m.user_id}
-                  className="flex items-center justify-between bg-white border rounded-lg px-4 py-3"
-                >
-                  <span>{profile.display_name}</span>
-                  <span className="text-sm text-gray-500">
-                    {roleLabels[m.role as string] ?? m.role}
-                  </span>
-                </div>
-              );
-            })}
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">
+              {currentMonth} のイベント
+            </h2>
+            {isLeaderOrMod && (
+              <Link href={`/g/${groupId}/events/new`}>
+                <Button size="sm">+ 作成</Button>
+              </Link>
+            )}
           </div>
+
+          {(!events || events.length === 0) ? (
+            <p className="text-sm text-gray-500">今月のイベントはありません</p>
+          ) : (
+            <div className="space-y-3">
+              {events.map((event) => {
+                const stats = eventStats[event.id] || { total: 0, paid: 0, claimed: 0 };
+                return (
+                  <Link key={event.id} href={`/g/${groupId}/events/${event.id}`}>
+                    <Card className="hover:bg-gray-50 transition-colors cursor-pointer">
+                      <CardContent className="py-4">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{event.title}</span>
+                          <span className="text-sm font-semibold">
+                            {event.amount.toLocaleString()}円
+                          </span>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-sm text-gray-500">
+                          <span>{stats.paid}/{stats.total}人 支払い済み</span>
+                          {stats.claimed > 0 && (
+                            <span className="text-orange-500">{stats.claimed}件 申告中</span>
+                          )}
+                        </div>
+                        {event.due_date && (
+                          <p className="mt-1 text-xs text-gray-400">
+                            期限: {event.due_date}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
+
+        {isLeaderOrMod && (
+          <Link href={`/g/${groupId}/approve`}>
+            <Button variant="outline" className="w-full">
+              支払い承認画面へ
+            </Button>
+          </Link>
+        )}
 
         {isLeader && (
           <>

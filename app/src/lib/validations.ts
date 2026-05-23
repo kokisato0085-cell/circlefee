@@ -40,7 +40,29 @@ export const joinGroupSchema = z.object({
     .min(1, "パスワードを入力してください"),
 });
 
+export const createEventSchema = z.object({
+  title: z
+    .string()
+    .min(1, "タイトルを入力してください")
+    .max(50, "タイトルは50文字以内です"),
+  amount: z.coerce
+    .number()
+    .int("金額は整数で入力してください")
+    .min(1, "金額は1円以上です")
+    .max(999999, "金額は999,999円以下です"),
+  dueDate: z
+    .string()
+    .optional()
+    .transform((v) => v || null),
+  description: z
+    .string()
+    .max(200, "説明は200文字以内です")
+    .optional()
+    .transform((v) => v || null),
+});
+
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateGroupInput = z.infer<typeof createGroupSchema>;
 export type JoinGroupInput = z.infer<typeof joinGroupSchema>;
+export type CreateEventInput = z.infer<typeof createEventSchema>;
