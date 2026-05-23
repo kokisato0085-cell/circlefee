@@ -10,36 +10,36 @@ export type ActionResult = {
 };
 
 export async function createGroup(formData: FormData): Promise<ActionResult> {
-  const parsed = createGroupSchema.safeParse({
-    name: formData.get("name"),
-    password: formData.get("password"),
-  });
+  try {
+    const parsed = createGroupSchema.safeParse({
+      name: formData.get("name"),
+      password: formData.get("password"),
+    });
 
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0].message };
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "認証エラー" };
+
+    const passwordHash = await bcrypt.hash(parsed.data.password, 10);
+
+    const { data: groupId, error: rpcError } = await supabase
+      .rpc("create_group_with_leader", {
+        group_name: parsed.data.name,
+        group_password_hash: passwordHash,
+        caller_user_id: user.id,
+      });
+
+    if (rpcError) return { error: `グループ作成エラー: ${rpcError.message}` };
+
+    redirect(`/g/${groupId}`);
+  } catch (e) {
+    if (e && typeof e === "object" && "digest" in e) throw e;
+    return { error: `予期しないエラー: ${e instanceof Error ? e.message : String(e)}` };
   }
-
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "認証エラー" };
-
-  const passwordHash = await bcrypt.hash(parsed.data.password, 10);
-
-  const { data: group, error: groupError } = await supabase
-    .from("groups")
-    .insert({ name: parsed.data.name, password_hash: passwordHash, created_by: user.id })
-    .select("id")
-    .single();
-
-  if (groupError) return { error: "グループの作成に失敗しました" };
-
-  const { error: memberError } = await supabase
-    .from("memberships")
-    .insert({ group_id: group.id, user_id: user.id, role: "leader" });
-
-  if (memberError) return { error: "メンバー登録に失敗しました" };
-
-  redirect(`/g/${group.id}`);
 }
 
 export async function submitJoinRequest(
