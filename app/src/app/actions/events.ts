@@ -59,6 +59,19 @@ export async function createEvent(
         user_id: m.user_id,
       }));
       await supabase.from("payment_statuses").insert(statuses);
+
+      const notifications = members
+        .filter((m) => m.user_id !== user.id)
+        .map((m) => ({
+          group_id: groupId,
+          target_user_id: m.user_id,
+          type: "event_created" as const,
+          message: `新しい集金「${parsed.data.title}」が作成されました`,
+          related_event_id: event.id,
+        }));
+      if (notifications.length > 0) {
+        await supabase.from("notifications").insert(notifications);
+      }
     }
 
     redirect(`/g/${groupId}/events/${event.id}`);
@@ -94,6 +107,27 @@ export async function claimPayment(
 
   if (updateError) return { error: "更新に失敗しました。再度お試しください" };
 
+  const [{ data: profile }, { data: event }, { data: mods }] = await Promise.all([
+    supabase.from("profiles").select("display_name").eq("id", user.id).single(),
+    supabase.from("events").select("group_id, title").eq("id", eventId).single(),
+    supabase
+      .from("memberships")
+      .select("user_id")
+      .eq("group_id", groupId)
+      .in("role", ["leader", "moderator"]),
+  ]);
+
+  if (event && mods && mods.length > 0) {
+    const notifications = mods.map((m) => ({
+      group_id: groupId,
+      target_user_id: m.user_id,
+      type: "payment_claimed" as const,
+      message: `${profile?.display_name ?? "メンバー"}が「${event.title}」の支払いを申告しました`,
+      related_event_id: eventId,
+    }));
+    await supabase.from("notifications").insert(notifications);
+  }
+
   revalidatePath(`/g/${groupId}/events/${eventId}`);
   return {};
 }
@@ -121,6 +155,12 @@ export async function approvePayment(
     return { error: "申告中のステータスのみ承認できます" };
   }
 
+  const { data: psDetail } = await supabase
+    .from("payment_statuses")
+    .select("user_id, event_id, events(title)")
+    .eq("id", paymentStatusId)
+    .single();
+
   const { error: updateError } = await supabase
     .from("payment_statuses")
     .update({ status: newStatus, version: ps.version + 1, updated_at: new Date().toISOString() })
@@ -128,6 +168,22 @@ export async function approvePayment(
     .eq("version", ps.version);
 
   if (updateError) return { error: "更新に失敗しました。再度お試しください" };
+
+  if (psDetail) {
+    const ev = psDetail.events as unknown as { title: string };
+    const notifType = action === "approve" ? "payment_approved" : "payment_rejected";
+    const msg = action === "approve"
+      ? `「${ev.title}」の支払いが承認されました`
+      : `「${ev.title}」の支払い申告が差し戻されました`;
+
+    await supabase.from("notifications").insert({
+      group_id: groupId,
+      target_user_id: psDetail.user_id,
+      type: notifType,
+      message: msg,
+      related_event_id: psDetail.event_id,
+    });
+  }
 
   revalidatePath(`/g/${groupId}`);
   return {};
