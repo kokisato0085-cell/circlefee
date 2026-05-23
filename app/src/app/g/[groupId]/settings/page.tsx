@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "./logout-button";
+import { PushToggle } from "./push-toggle";
 
 export default async function SettingsPage({
   params,
@@ -44,7 +45,8 @@ export default async function SettingsPage({
           </div>
         )}
 
-        <div className="pt-4 border-t">
+        <div className="pt-4 border-t space-y-4">
+          <PushToggle />
           <LogoutButton />
         </div>
       </div>

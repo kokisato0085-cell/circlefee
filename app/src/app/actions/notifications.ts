@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { sendPushToUsers } from "@/lib/web-push";
 import { revalidatePath } from "next/cache";
 
 export type ActionResult = {
@@ -60,6 +61,12 @@ export async function sendReminder(
 
   const { error } = await supabase.from("notifications").insert(notifications);
   if (error) return { error: "催促通知の送信に失敗しました" };
+
+  sendPushToUsers(targetUserIds, {
+    title: "催促通知",
+    body: `「${eventTitle}」の支払いが未完了です`,
+    url: `/g/${groupId}/events/${eventId}`,
+  });
 
   revalidatePath(`/g/${groupId}`);
   return {};

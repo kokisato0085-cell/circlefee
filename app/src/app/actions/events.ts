@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createEventSchema } from "@/lib/validations";
+import { sendPushToUsers, sendPushToUser } from "@/lib/web-push";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -71,6 +72,12 @@ export async function createEvent(
         }));
       if (notifications.length > 0) {
         await supabase.from("notifications").insert(notifications);
+        const pushTargets = members.filter((m) => m.user_id !== user.id).map((m) => m.user_id);
+        sendPushToUsers(pushTargets, {
+          title: "新しい集金",
+          body: `「${parsed.data.title}」が作成されました`,
+          url: `/g/${groupId}/events/${event.id}`,
+        });
       }
     }
 
@@ -126,6 +133,14 @@ export async function claimPayment(
       related_event_id: eventId,
     }));
     await supabase.from("notifications").insert(notifications);
+    sendPushToUsers(
+      mods.map((m) => m.user_id),
+      {
+        title: "支払い申告",
+        body: `${profile?.display_name ?? "メンバー"}が「${event.title}」の支払いを申告しました`,
+        url: `/g/${groupId}/events/${eventId}`,
+      }
+    );
   }
 
   revalidatePath(`/g/${groupId}/events/${eventId}`);
@@ -182,6 +197,11 @@ export async function approvePayment(
       type: notifType,
       message: msg,
       related_event_id: psDetail.event_id,
+    });
+    sendPushToUser(psDetail.user_id, {
+      title: action === "approve" ? "支払い承認" : "支払い差戻し",
+      body: msg,
+      url: `/g/${groupId}/events/${psDetail.event_id}`,
     });
   }
 
