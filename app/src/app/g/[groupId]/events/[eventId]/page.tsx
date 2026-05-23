@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClaimButton } from "./claim-button";
 import { PaymentManageList } from "./payment-manage-list";
+import { DeleteEventButton } from "./delete-event-button";
 
 export default async function EventDetailPage({
   params,
@@ -138,6 +139,12 @@ export default async function EventDetailPage({
             eventAmount={event.amount}
             groupId={groupId}
           />
+        )}
+
+        {isLeaderOrMod && (
+          <div className="pt-2 border-t">
+            <DeleteEventButton eventId={eventId} groupId={groupId} />
+          </div>
         )}
       </div>
     </div>

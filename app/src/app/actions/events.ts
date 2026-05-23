@@ -155,6 +155,43 @@ export async function updateSubStatus(
   return {};
 }
 
+export async function deleteEvent(
+  eventId: string,
+  groupId: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || (membership.role !== "leader" && membership.role !== "moderator")) {
+    return { error: "権限者以上のみ削除できます" };
+  }
+
+  const { error: deleteStatusesError } = await supabase
+    .from("payment_statuses")
+    .delete()
+    .eq("event_id", eventId);
+
+  if (deleteStatusesError) return { error: "支払いデータの削除に失敗しました" };
+
+  const { error: deleteEventError } = await supabase
+    .from("events")
+    .delete()
+    .eq("id", eventId)
+    .eq("group_id", groupId);
+
+  if (deleteEventError) return { error: "イベント削除に失敗しました" };
+
+  redirect(`/g/${groupId}`);
+}
+
 export async function adjustPaymentAmount(
   paymentStatusId: string,
   amount: number,
