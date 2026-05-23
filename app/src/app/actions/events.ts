@@ -61,23 +61,26 @@ export async function createEvent(
       }));
       await supabase.from("payment_statuses").insert(statuses);
 
-      const notifications = members
-        .filter((m) => m.user_id !== user.id)
-        .map((m) => ({
+      const otherMembers = members.filter((m) => m.user_id !== user.id);
+      if (otherMembers.length > 0) {
+        const notifications = otherMembers.map((m) => ({
           group_id: groupId,
           target_user_id: m.user_id,
           type: "event_created" as const,
           message: `新しい集金「${parsed.data.title}」が作成されました`,
           related_event_id: event.id,
         }));
-      if (notifications.length > 0) {
-        await supabase.from("notifications").insert(notifications);
-        const pushTargets = members.filter((m) => m.user_id !== user.id).map((m) => m.user_id);
-        sendPushToUsers(pushTargets, {
-          title: "新しい集金",
-          body: `「${parsed.data.title}」が作成されました`,
-          url: `/g/${groupId}/events/${event.id}`,
-        });
+        try {
+          await supabase.from("notifications").insert(notifications);
+          sendPushToUsers(
+            otherMembers.map((m) => m.user_id),
+            {
+              title: "新しい集金",
+              body: `「${parsed.data.title}」が作成されました`,
+              url: `/g/${groupId}/events/${event.id}`,
+            }
+          );
+        } catch { /* 通知失敗はイベント作成を妨げない */ }
       }
     }
 
