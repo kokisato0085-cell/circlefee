@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { RealtimeProvider } from "./realtime-provider";
 
 export default async function GroupLayout({
   children,
@@ -32,6 +33,7 @@ export default async function GroupLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
+      <RealtimeProvider groupId={groupId} userId={user.id} />
       <div className="flex-1 pb-16">{children}</div>
       <nav className="fixed bottom-0 left-0 right-0 border-t bg-white">
         <div className="mx-auto flex max-w-md">
