@@ -14,6 +14,27 @@ export default function SignupPage() {
     null
   );
 
+  if (state?.success) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-center text-2xl">メールを確認してください</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-center">
+          <p className="text-gray-700">
+            入力されたメールアドレスに確認メールを送信しました。
+            メール内のリンクをクリックして登録を完了してください。
+          </p>
+          <Link href="/login">
+            <Button variant="outline" className="w-full">
+              ログイン画面へ
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>

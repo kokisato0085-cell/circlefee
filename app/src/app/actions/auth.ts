@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 export type ActionResult = {
   error?: string;
+  success?: boolean;
 };
 
 export async function signup(formData: FormData): Promise<ActionResult> {
@@ -35,7 +36,7 @@ export async function signup(formData: FormData): Promise<ActionResult> {
     return { error: error.message };
   }
 
-  redirect("/groups");
+  return { success: true };
 }
 
 export async function login(formData: FormData): Promise<ActionResult> {
