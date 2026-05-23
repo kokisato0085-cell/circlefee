@@ -138,6 +138,12 @@ export default async function GroupHomePage({
           )}
         </div>
 
+        <Link href={`/g/${groupId}/dashboard`}>
+          <Button variant="outline" className="w-full">
+            会計ダッシュボード
+          </Button>
+        </Link>
+
         {isLeaderOrMod && (
           <Link href={`/g/${groupId}/approve`}>
             <Button variant="outline" className="w-full">

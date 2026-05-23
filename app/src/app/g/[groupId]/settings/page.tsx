@@ -35,7 +35,12 @@ export default async function SettingsPage({
         {isLeader && (
           <div className="space-y-2 pt-4 border-t">
             <p className="text-sm font-semibold text-gray-500">管理 (部長)</p>
-            <p className="text-sm text-gray-400">Phase 3 で実装予定</p>
+            <Link href={`/g/${groupId}/admin/members`}>
+              <Button variant="outline" className="w-full">メンバー管理</Button>
+            </Link>
+            <Link href={`/g/${groupId}/admin/roles`}>
+              <Button variant="outline" className="w-full">部長委譲</Button>
+            </Link>
           </div>
         )}
 

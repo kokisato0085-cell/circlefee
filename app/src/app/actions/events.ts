@@ -166,6 +166,22 @@ export async function adjustPaymentAmount(
 
   if (amount < 0 || amount > 999999) return { error: "金額は0〜999,999円です" };
 
+  const { data: ps } = await supabase
+    .from("payment_statuses")
+    .select("user_id")
+    .eq("id", paymentStatusId)
+    .single();
+
+  if (!ps) return { error: "ステータスが見つかりません" };
+
+  const { data: eligible } = await supabase
+    .rpc("check_consecutive_unpaid", {
+      p_group_id: groupId,
+      p_user_id: ps.user_id,
+    });
+
+  if (!eligible) return { error: "2ヶ月連続未払いのメンバーのみ金額調整できます" };
+
   const { error } = await supabase
     .from("payment_statuses")
     .update({ adjusted_amount: amount })
