@@ -154,3 +154,25 @@ export async function updateSubStatus(
   revalidatePath(`/g/${groupId}`);
   return {};
 }
+
+export async function adjustPaymentAmount(
+  paymentStatusId: string,
+  amount: number,
+  groupId: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  if (amount < 0 || amount > 999999) return { error: "金額は0〜999,999円です" };
+
+  const { error } = await supabase
+    .from("payment_statuses")
+    .update({ adjusted_amount: amount })
+    .eq("id", paymentStatusId);
+
+  if (error) return { error: "更新に失敗しました" };
+
+  revalidatePath(`/g/${groupId}`);
+  return {};
+}

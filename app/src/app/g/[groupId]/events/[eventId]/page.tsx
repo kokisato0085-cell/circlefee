@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClaimButton } from "./claim-button";
+import { PaymentManageList } from "./payment-manage-list";
 
 export default async function EventDetailPage({
   params,
@@ -15,34 +16,37 @@ export default async function EventDetailPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
-    .from("memberships")
-    .select("role")
-    .eq("group_id", groupId)
-    .eq("user_id", user.id)
-    .single();
+  const [{ data: membership }, { data: event }] = await Promise.all([
+    supabase
+      .from("memberships")
+      .select("role")
+      .eq("group_id", groupId)
+      .eq("user_id", user.id)
+      .single(),
+    supabase
+      .from("events")
+      .select("*")
+      .eq("id", eventId)
+      .single(),
+  ]);
 
   if (!membership) redirect("/groups");
-
-  const { data: event } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", eventId)
-    .single();
-
   if (!event) redirect(`/g/${groupId}`);
 
-  const { data: myStatus } = await supabase
-    .from("payment_statuses")
-    .select("id, status, version")
-    .eq("event_id", eventId)
-    .eq("user_id", user.id)
-    .single();
+  const isLeaderOrMod = membership.role === "leader" || membership.role === "moderator";
 
-  const { data: allStatuses } = await supabase
-    .from("payment_statuses")
-    .select("status")
-    .eq("event_id", eventId);
+  const [{ data: myStatus }, { data: allStatuses }] = await Promise.all([
+    supabase
+      .from("payment_statuses")
+      .select("id, status, version")
+      .eq("event_id", eventId)
+      .eq("user_id", user.id)
+      .single(),
+    supabase
+      .from("payment_statuses")
+      .select("id, user_id, status, sub_status, adjusted_amount, version, profiles(display_name)")
+      .eq("event_id", eventId),
+  ]);
 
   const total = allStatuses?.length ?? 0;
   const paid = allStatuses?.filter((s) => s.status === "paid").length ?? 0;
@@ -55,6 +59,16 @@ export default async function EventDetailPage({
   };
 
   const myStatusInfo = myStatus ? statusLabels[myStatus.status] : null;
+
+  const memberStatuses = (allStatuses ?? []).map((s) => ({
+    id: s.id,
+    userId: s.user_id,
+    displayName: (s.profiles as unknown as { display_name: string }).display_name,
+    status: s.status as string,
+    subStatus: s.sub_status as string | null,
+    adjustedAmount: s.adjusted_amount as number | null,
+    version: s.version,
+  }));
 
   return (
     <div className="flex min-h-full flex-col px-4 py-6">
@@ -116,6 +130,14 @@ export default async function EventDetailPage({
               )}
             </CardContent>
           </Card>
+        )}
+
+        {isLeaderOrMod && (
+          <PaymentManageList
+            statuses={memberStatuses}
+            eventAmount={event.amount}
+            groupId={groupId}
+          />
         )}
       </div>
     </div>

@@ -46,12 +46,7 @@ export default async function GroupHomePage({
       .eq("month", currentMonth)
       .order("created_at", { ascending: false }),
     isLeader
-      ? supabase
-          .from("join_requests")
-          .select("id, user_id, created_at, profiles(display_name)")
-          .eq("group_id", groupId)
-          .eq("status", "pending")
-          .order("created_at", { ascending: true })
+      ? supabase.rpc("get_pending_join_requests", { target_group_id: groupId })
       : Promise.resolve({ data: null }),
   ]);
 
@@ -73,9 +68,9 @@ export default async function GroupHomePage({
     }
   }
 
-  const joinRequests = (joinRequestsResult.data ?? []).map((r) => ({
+  const joinRequests = (joinRequestsResult.data ?? []).map((r: { id: string; display_name: string; created_at: string }) => ({
     id: r.id,
-    display_name: (r.profiles as unknown as { display_name: string }).display_name,
+    display_name: r.display_name,
     created_at: r.created_at,
   }));
 

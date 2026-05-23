@@ -60,22 +60,20 @@ export async function submitJoinRequest(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "ログインしてください" };
 
-  const { data: invite, error: inviteError } = await supabase
-    .from("invite_links")
-    .select("group_id, expires_at, groups(password_hash)")
-    .eq("token", token)
-    .single();
+  const { data: inviteInfo, error: rpcError } = await supabase
+    .rpc("get_invite_group_info", { invite_token: token });
 
-  if (inviteError || !invite) {
+  if (rpcError || !inviteInfo || inviteInfo.length === 0) {
     return { error: "招待リンクが見つかりません" };
   }
+
+  const invite = inviteInfo[0];
 
   if (new Date(invite.expires_at) < new Date()) {
     return { error: "この招待リンクは期限切れです" };
   }
 
-  const group = invite.groups as unknown as { password_hash: string };
-  const passwordValid = await bcrypt.compare(parsed.data.password, group.password_hash);
+  const passwordValid = await bcrypt.compare(parsed.data.password, invite.password_hash);
   if (!passwordValid) {
     return { error: "パスワードが正しくありません" };
   }
