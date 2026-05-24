@@ -1,19 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
 
-let initialized = false;
+let cached: any = null;
 
 async function getWebPush() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const webpush = require("web-push");
-  if (!initialized) {
+  if (cached) return cached;
+  try {
+    const load = new Function("m", "return require(m)");
+    const webpush = load("web-push");
     webpush.setVapidDetails(
       "mailto:kokisato0085@gmail.com",
       process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
       process.env.VAPID_PRIVATE_KEY!
     );
-    initialized = true;
+    cached = webpush;
+    return webpush;
+  } catch {
+    return null;
   }
-  return webpush;
 }
 
 export async function sendPushToUser(
@@ -31,6 +34,7 @@ export async function sendPushToUser(
     if (!subscriptions || subscriptions.length === 0) return;
 
     const webpush = await getWebPush();
+    if (!webpush) return;
     const body = JSON.stringify(payload);
 
     for (const sub of subscriptions) {
