@@ -1,72 +1,34 @@
-"use client";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { InviteForm } from "./invite-form";
 
-import { use, useActionState } from "react";
-import { submitJoinRequest, type ActionResult } from "@/app/actions/groups";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
-
-export default function InvitePage({
+export default async function InvitePage({
   params,
 }: {
   params: Promise<{ token: string }>;
 }) {
-  const { token } = use(params);
-  const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(
-    async (_prev, formData) => submitJoinRequest(token, formData),
-    null
-  );
+  const { token } = await params;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const success = state && !state.error;
+  if (user) {
+    const { data: inviteInfo } = await supabase
+      .rpc("get_invite_group_info", { invite_token: token });
 
-  return (
-    <div className="flex min-h-full items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center text-xl">
-              グループに参加
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {success ? (
-              <div className="space-y-4 text-center">
-                <p className="text-green-700 bg-green-50 p-3 rounded-md">
-                  参加リクエストを送信しました。部長の承認をお待ちください。
-                </p>
-                <Link href="/groups">
-                  <Button variant="outline" className="w-full">
-                    グループ一覧へ
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <form action={formAction} className="space-y-4">
-                {state?.error && (
-                  <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
-                    {state.error}
-                  </p>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="password">グループパスワード</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    placeholder="グループのパスワードを入力"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={pending}>
-                  {pending ? "送信中..." : "参加リクエストを送信"}
-                </Button>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+    if (inviteInfo && inviteInfo.length > 0) {
+      const groupId = inviteInfo[0].group_id;
+      const { data: existing } = await supabase
+        .from("memberships")
+        .select("id")
+        .eq("group_id", groupId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (existing) {
+        redirect(`/g/${groupId}`);
+      }
+    }
+  }
+
+  return <InviteForm token={token} />;
 }
