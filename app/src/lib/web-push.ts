@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 let initialized = false;
 
 async function getWebPush() {
-  const webpush = (await import("web-push")).default;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const webpush = require("web-push");
   if (!initialized) {
     webpush.setVapidDetails(
       "mailto:kokisato0085@gmail.com",
