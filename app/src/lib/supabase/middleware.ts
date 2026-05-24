@@ -30,8 +30,11 @@ export async function updateSession(request: NextRequest) {
     await supabase.auth.exchangeCodeForSession(code);
     const url = request.nextUrl.clone();
     url.searchParams.delete("code");
-    supabaseResponse = NextResponse.redirect(url);
-    return supabaseResponse;
+    const redirectResponse = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value);
+    });
+    return redirectResponse;
   }
 
   const {
