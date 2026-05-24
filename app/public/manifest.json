@@ -1,0 +1,21 @@
+{
+  "name": "サークル費用管理",
+  "short_name": "サークル費用",
+  "description": "サークルの集金・会計管理アプリ",
+  "start_url": "/groups",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
