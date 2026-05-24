@@ -1,4 +1,4 @@
-const CACHE_NAME = "circle-fee-v1";
+const CACHE_NAME = "circle-fee-v2";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
