@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createEventSchema } from "@/lib/validations";
+import { createEventSchema, pollSchema } from "@/lib/validations";
 import { sendPushToUsers, sendPushToUser } from "@/lib/web-push";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -81,6 +81,29 @@ export async function createEvent(
             }
           );
         } catch { /* 通知失敗はイベント作成を妨げない */ }
+      }
+    }
+
+    const pollQuestion = formData.get("pollQuestion") as string | null;
+    const pollOptions = formData.getAll("pollOption") as string[];
+    if (pollQuestion?.trim()) {
+      const validOptions = pollOptions.filter((o) => o.trim());
+      const pollParsed = pollSchema.safeParse({ question: pollQuestion, options: validOptions });
+      if (pollParsed.success) {
+        const { data: poll } = await supabase
+          .from("event_polls")
+          .insert({ event_id: event.id, question: pollParsed.data.question })
+          .select("id")
+          .single();
+
+        if (poll) {
+          const optionRows = pollParsed.data.options.map((label, i) => ({
+            poll_id: poll.id,
+            label,
+            sort_order: i,
+          }));
+          await supabase.from("event_poll_options").insert(optionRows);
+        }
       }
     }
 

@@ -14,6 +14,7 @@ type MemberStatus = {
   subStatus: string | null;
   adjustedAmount: number | null;
   version: number;
+  voteLabel: string | null;
 };
 
 const statusLabels: Record<string, { text: string; color: string }> = {
@@ -110,7 +111,14 @@ function MemberStatusCard({
         {error && <p className="text-xs text-red-600">{error}</p>}
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-medium">{status.displayName}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-medium">{status.displayName}</p>
+              {status.voteLabel && (
+                <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                  {status.voteLabel}
+                </span>
+              )}
+            </div>
             {adjustedAmount !== null && adjustedAmount !== eventAmount && (
               <p className="text-xs text-blue-600">調整済: {displayAmount.toLocaleString()}円</p>
             )}

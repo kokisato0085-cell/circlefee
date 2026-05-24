@@ -61,8 +61,22 @@ export const createEventSchema = z.object({
     .transform((v) => v || null),
 });
 
+export const pollSchema = z.object({
+  question: z
+    .string()
+    .min(1, "質問文を入力してください")
+    .max(50, "質問文は50文字以内です"),
+  options: z
+    .array(
+      z.string().min(1, "選択肢を入力してください").max(20, "選択肢は20文字以内です")
+    )
+    .min(2, "選択肢は2つ以上必要です")
+    .max(10, "選択肢は10個以内です"),
+});
+
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateGroupInput = z.infer<typeof createGroupSchema>;
 export type JoinGroupInput = z.infer<typeof joinGroupSchema>;
 export type CreateEventInput = z.infer<typeof createEventSchema>;
+export type PollInput = z.infer<typeof pollSchema>;

@@ -8,6 +8,8 @@ import { PaymentManageList } from "./payment-manage-list";
 import { EditEventForm } from "./edit-event-form";
 import { DeleteEventButton } from "./delete-event-button";
 import { ReminderButton } from "./reminder-button";
+import { PollSection } from "./poll-section";
+import { PollManage } from "./poll-manage";
 
 export default async function EventDetailPage({
   params,
@@ -38,7 +40,7 @@ export default async function EventDetailPage({
 
   const isLeaderOrMod = membership.role === "leader" || membership.role === "moderator";
 
-  const [{ data: myStatus }, { data: allStatuses }] = await Promise.all([
+  const [{ data: myStatus }, { data: allStatuses }, { data: pollData }] = await Promise.all([
     supabase
       .from("payment_statuses")
       .select("id, status, version")
@@ -49,7 +51,55 @@ export default async function EventDetailPage({
       .from("payment_statuses")
       .select("id, user_id, status, sub_status, adjusted_amount, version, profiles(display_name)")
       .eq("event_id", eventId),
+    supabase
+      .from("event_polls")
+      .select("id, question, event_poll_options(id, label, sort_order)")
+      .eq("event_id", eventId)
+      .maybeSingle(),
   ]);
+
+  let pollProps: {
+    id: string;
+    question: string;
+    options: { id: string; label: string; voteCount: number }[];
+    myVoteOptionId: string | null;
+    totalVotes: number;
+  } | null = null;
+
+  let voteByUserId: Record<string, string> = {};
+
+  if (pollData) {
+    const sortedOptions = [...(pollData.event_poll_options ?? [])].sort(
+      (a, b) => a.sort_order - b.sort_order
+    );
+
+    const { data: votes } = await supabase
+      .from("event_poll_votes")
+      .select("user_id, option_id")
+      .eq("poll_id", pollData.id);
+
+    const voteCounts: Record<string, number> = {};
+    let myVoteOptionId: string | null = null;
+
+    for (const v of votes ?? []) {
+      voteCounts[v.option_id] = (voteCounts[v.option_id] ?? 0) + 1;
+      if (v.user_id === user.id) myVoteOptionId = v.option_id;
+      const opt = sortedOptions.find((o) => o.id === v.option_id);
+      if (opt) voteByUserId[v.user_id] = opt.label;
+    }
+
+    pollProps = {
+      id: pollData.id,
+      question: pollData.question,
+      options: sortedOptions.map((o) => ({
+        id: o.id,
+        label: o.label,
+        voteCount: voteCounts[o.id] ?? 0,
+      })),
+      myVoteOptionId,
+      totalVotes: (votes ?? []).length,
+    };
+  }
 
   const total = allStatuses?.length ?? 0;
   const paid = allStatuses?.filter((s) => s.status === "paid").length ?? 0;
@@ -71,6 +121,7 @@ export default async function EventDetailPage({
     subStatus: s.sub_status as string | null,
     adjustedAmount: s.adjusted_amount as number | null,
     version: s.version,
+    voteLabel: voteByUserId[s.user_id] ?? null,
   }));
 
   return (
@@ -123,6 +174,24 @@ export default async function EventDetailPage({
             )}
           </CardContent>
         </Card>
+
+        {pollProps && (
+          <PollSection poll={pollProps} groupId={groupId} eventId={eventId} />
+        )}
+
+        {isLeaderOrMod && (
+          <PollManage
+            poll={pollData ? {
+              id: pollData.id,
+              question: pollData.question,
+              options: [...(pollData.event_poll_options ?? [])]
+                .sort((a, b) => a.sort_order - b.sort_order)
+                .map((o) => ({ id: o.id, label: o.label })),
+            } : null}
+            eventId={eventId}
+            groupId={groupId}
+          />
+        )}
 
         {myStatus && (
           <Card>
