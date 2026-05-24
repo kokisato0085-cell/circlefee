@@ -32,7 +32,7 @@ export async function updateSession(request: NextRequest) {
     url.searchParams.delete("code");
     const redirectResponse = NextResponse.redirect(url);
     supabaseResponse.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value);
+      redirectResponse.cookies.set(cookie);
     });
     return redirectResponse;
   }

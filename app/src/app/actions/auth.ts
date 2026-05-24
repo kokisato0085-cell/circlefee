@@ -74,8 +74,9 @@ export async function resetPasswordEmail(formData: FormData): Promise<ActionResu
   if (!email) return { error: "メールアドレスを入力してください" };
 
   const supabase = await createClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/reset-password`,
+    redirectTo: `${siteUrl}/api/auth/callback?next=/reset-password`,
   });
 
   if (error) return { error: error.message };
