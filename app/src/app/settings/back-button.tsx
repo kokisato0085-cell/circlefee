@@ -1,13 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export function BackButton() {
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from") || "/groups";
+
   return (
-    <Button variant="ghost" size="sm" onClick={() => router.back()}>
-      ← 戻る
-    </Button>
+    <Link href={from}>
+      <Button variant="ghost" size="sm">
+        ← 戻る
+      </Button>
+    </Link>
   );
 }

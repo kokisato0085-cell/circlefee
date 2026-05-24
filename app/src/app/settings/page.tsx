@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,9 @@ export default async function AccountSettingsPage() {
     <div className="flex min-h-full flex-col px-4 py-6">
       <div className="mx-auto w-full max-w-md space-y-6">
         <div className="flex items-center gap-3">
-          <BackButton />
+          <Suspense fallback={<span />}>
+            <BackButton />
+          </Suspense>
           <h1 className="text-xl font-bold">アカウント設定</h1>
         </div>
 

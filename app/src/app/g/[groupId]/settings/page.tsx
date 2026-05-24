@@ -46,7 +46,7 @@ export default async function SettingsPage({
         )}
 
         <div className="pt-4 border-t space-y-4">
-          <Link href="/settings">
+          <Link href={`/settings?from=/g/${groupId}/settings`}>
             <Button variant="outline" className="w-full">アカウント設定</Button>
           </Link>
           <PushToggle />
