@@ -1,27 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { claimPayment } from "@/app/actions/events";
 import { Button } from "@/components/ui/button";
 
 export function ClaimButton({ eventId, groupId }: { eventId: string; groupId: string }) {
-  const [pending, setPending] = useState(false);
-  const [done, setDone] = useState(false);
+  const [claimed, setClaimed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  async function handleClaim() {
-    setPending(true);
+  function handleClaim() {
     setError(null);
-    const result = await claimPayment(eventId, groupId);
-    setPending(false);
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
-    setDone(true);
+    setClaimed(true);
+    startTransition(async () => {
+      const result = await claimPayment(eventId, groupId);
+      if (result.error) {
+        setClaimed(false);
+        setError(result.error);
+      }
+    });
   }
 
-  if (done) {
+  if (claimed) {
     return (
       <span className="text-sm text-orange-600 font-medium">申告済み</span>
     );
@@ -30,8 +30,8 @@ export function ClaimButton({ eventId, groupId }: { eventId: string; groupId: st
   return (
     <div>
       {error && <p className="text-xs text-red-600 mb-1">{error}</p>}
-      <Button size="sm" onClick={handleClaim} disabled={pending}>
-        {pending ? "送信中..." : "支払った"}
+      <Button size="sm" onClick={handleClaim} disabled={isPending}>
+        支払った
       </Button>
     </div>
   );

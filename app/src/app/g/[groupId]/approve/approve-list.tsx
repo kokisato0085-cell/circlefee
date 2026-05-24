@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { approvePayment } from "@/app/actions/events";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,15 +22,22 @@ export function ApproveList({
 }) {
   const [processed, setProcessed] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
 
-  async function handleAction(paymentStatusId: string, action: "approve" | "reject") {
+  function handleAction(paymentStatusId: string, action: "approve" | "reject") {
     setError(null);
-    const result = await approvePayment(paymentStatusId, groupId, action);
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
     setProcessed((prev) => new Set(prev).add(paymentStatusId));
+    startTransition(async () => {
+      const result = await approvePayment(paymentStatusId, groupId, action);
+      if (result.error) {
+        setProcessed((prev) => {
+          const next = new Set(prev);
+          next.delete(paymentStatusId);
+          return next;
+        });
+        setError(result.error);
+      }
+    });
   }
 
   const pending = approvals.filter((a) => !processed.has(a.paymentStatusId));

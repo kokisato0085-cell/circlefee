@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { InviteLinkSection } from "./invite-link-section";
-import { JoinRequestList } from "./join-request-list";
+import { EventsSection } from "./events-section";
+import { SpecialEventsSection } from "./special-events-section";
+import { LeaderSection } from "./leader-section";
 
 export default async function GroupHomePage({
   params,
@@ -35,56 +36,6 @@ export default async function GroupHomePage({
   const isLeaderOrMod = membership.role === "leader" || membership.role === "moderator";
   const isLeader = membership.role === "leader";
 
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
-  const [{ data: events }, { data: specialEvents }, joinRequestsResult] = await Promise.all([
-    supabase
-      .from("events")
-      .select("id, title, amount, due_date, month, created_at")
-      .eq("group_id", groupId)
-      .eq("month", currentMonth)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("special_events")
-      .select("id, title, amount, created_at")
-      .eq("group_id", groupId)
-      .order("created_at", { ascending: false }),
-    isLeader
-      ? supabase.rpc("get_pending_join_requests", { target_group_id: groupId })
-      : Promise.resolve({ data: null }),
-  ]);
-
-  let eventStats: Record<string, { total: number; paid: number; claimed: number }> = {};
-  if (events && events.length > 0) {
-    const eventIds = events.map((e) => e.id);
-    const { data: statuses } = await supabase
-      .from("payment_statuses")
-      .select("event_id, status")
-      .in("event_id", eventIds);
-
-    for (const s of statuses ?? []) {
-      if (!eventStats[s.event_id]) {
-        eventStats[s.event_id] = { total: 0, paid: 0, claimed: 0 };
-      }
-      eventStats[s.event_id].total++;
-      if (s.status === "paid") eventStats[s.event_id].paid++;
-      if (s.status === "claimed") eventStats[s.event_id].claimed++;
-    }
-  }
-
-  const joinRequests = (joinRequestsResult.data ?? []).map((r: { id: string; display_name: string; created_at: string }) => ({
-    id: r.id,
-    display_name: r.display_name,
-    created_at: r.created_at,
-  }));
-
-  const statusLabel: Record<string, string> = {
-    unpaid: "未払い",
-    claimed: "申告中",
-    paid: "済",
-  };
-
   return (
     <div className="flex min-h-full flex-col px-4 py-6">
       <div className="mx-auto w-full max-w-md space-y-6">
@@ -95,85 +46,13 @@ export default async function GroupHomePage({
           </Link>
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">
-              {currentMonth} のイベント
-            </h2>
-            {isLeaderOrMod && (
-              <Link href={`/g/${groupId}/events/new`}>
-                <Button size="sm">+ 作成</Button>
-              </Link>
-            )}
-          </div>
+        <Suspense fallback={<EventsSkeleton />}>
+          <EventsSection groupId={groupId} isLeaderOrMod={isLeaderOrMod} />
+        </Suspense>
 
-          {(!events || events.length === 0) ? (
-            <p className="text-sm text-gray-500">今月のイベントはありません</p>
-          ) : (
-            <div className="space-y-3">
-              {events.map((event) => {
-                const stats = eventStats[event.id] || { total: 0, paid: 0, claimed: 0 };
-                return (
-                  <Link key={event.id} href={`/g/${groupId}/events/${event.id}`}>
-                    <Card className="hover:bg-gray-50 transition-colors cursor-pointer">
-                      <CardContent className="py-4">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{event.title}</span>
-                          <span className="text-sm font-semibold">
-                            {event.amount.toLocaleString()}円
-                          </span>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between text-sm text-gray-500">
-                          <span>{stats.paid}/{stats.total}人 支払い済み</span>
-                          {stats.claimed > 0 && (
-                            <span className="text-orange-500">{stats.claimed}件 申告中</span>
-                          )}
-                        </div>
-                        {event.due_date && (
-                          <p className="mt-1 text-xs text-gray-400">
-                            期限: {event.due_date}
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">特別イベント</h2>
-            {isLeader && (
-              <Link href={`/g/${groupId}/special/new`}>
-                <Button size="sm">+ 作成</Button>
-              </Link>
-            )}
-          </div>
-          {(!specialEvents || specialEvents.length === 0) ? (
-            <p className="text-sm text-gray-500">特別イベントはありません</p>
-          ) : (
-            <div className="space-y-3">
-              {specialEvents.map((se) => (
-                <Link key={se.id} href={`/g/${groupId}/special/${se.id}`}>
-                  <Card className="hover:bg-gray-50 transition-colors cursor-pointer">
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{se.title}</span>
-                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">特別</span>
-                        </div>
-                        <span className="text-sm font-semibold">{se.amount.toLocaleString()}円</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
+        <Suspense fallback={<SpecialEventsSkeleton />}>
+          <SpecialEventsSection groupId={groupId} isLeader={isLeader} />
+        </Suspense>
 
         <Link href={`/g/${groupId}/dashboard`}>
           <Button variant="outline" className="w-full">
@@ -190,12 +69,42 @@ export default async function GroupHomePage({
         )}
 
         {isLeader && (
-          <>
-            <InviteLinkSection groupId={groupId} />
-            <JoinRequestList requests={joinRequests} />
-          </>
+          <Suspense fallback={<LeaderSkeleton />}>
+            <LeaderSection groupId={groupId} />
+          </Suspense>
         )}
       </div>
+    </div>
+  );
+}
+
+function EventsSkeleton() {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="h-6 w-40 bg-gray-200 rounded animate-pulse" />
+      </div>
+      {[1, 2].map((i) => (
+        <div key={i} className="h-24 bg-gray-200 rounded-lg animate-pulse" />
+      ))}
+    </div>
+  );
+}
+
+function SpecialEventsSkeleton() {
+  return (
+    <div className="space-y-3">
+      <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" />
+      <div className="h-16 bg-gray-200 rounded-lg animate-pulse" />
+    </div>
+  );
+}
+
+function LeaderSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="h-10 bg-gray-200 rounded-lg animate-pulse" />
+      <div className="h-16 bg-gray-200 rounded-lg animate-pulse" />
     </div>
   );
 }

@@ -67,18 +67,22 @@ function MemberStatusCard({
 
   const label = statusLabels[currentStatus] ?? statusLabels.unpaid;
 
-  async function handleApprove() {
+  function handleApprove() {
     setError(null);
-    const result = await approvePayment(status.id, groupId, "approve");
-    if (result.error) { setError(result.error); return; }
+    const prev = currentStatus;
     setCurrentStatus("paid");
+    approvePayment(status.id, groupId, "approve").then((result) => {
+      if (result.error) { setCurrentStatus(prev); setError(result.error); }
+    });
   }
 
-  async function handleReject() {
+  function handleReject() {
     setError(null);
-    const result = await approvePayment(status.id, groupId, "reject");
-    if (result.error) { setError(result.error); return; }
+    const prev = currentStatus;
     setCurrentStatus("unpaid");
+    approvePayment(status.id, groupId, "reject").then((result) => {
+      if (result.error) { setCurrentStatus(prev); setError(result.error); }
+    });
   }
 
   async function handleSubStatusSave() {

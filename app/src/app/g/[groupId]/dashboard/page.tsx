@@ -68,14 +68,26 @@ export default async function DashboardPage({
   let grandTotalCollected = 0;
   let grandPaidUsers = 0;
   let grandTotalUsers = 0;
+  const myStatusByEvent: Record<string, { event_id: string; status: string; adjusted_amount: number | null }> = {};
 
   if (events && events.length > 0) {
     const eventIds = events.map((e) => e.id);
 
-    const { data: statuses } = await supabase
-      .from("payment_statuses")
-      .select("id, event_id, user_id, status, sub_status, adjusted_amount, profiles(display_name)")
-      .in("event_id", eventIds);
+    const [{ data: statuses }, { data: myStatuses }] = await Promise.all([
+      supabase
+        .from("payment_statuses")
+        .select("id, event_id, user_id, status, sub_status, adjusted_amount, profiles(display_name)")
+        .in("event_id", eventIds),
+      supabase
+        .from("payment_statuses")
+        .select("event_id, status, adjusted_amount")
+        .eq("user_id", user.id)
+        .in("event_id", eventIds),
+    ]);
+
+    for (const s of myStatuses ?? []) {
+      myStatusByEvent[s.event_id] = s;
+    }
 
     const statusesByEvent: Record<string, typeof statuses> = {};
     for (const s of statuses ?? []) {
@@ -127,17 +139,6 @@ export default async function DashboardPage({
       grandPaidUsers += paidCount;
       grandTotalUsers += evStatuses.length;
     }
-  }
-
-  const { data: myStatuses } = await supabase
-    .from("payment_statuses")
-    .select("event_id, status, adjusted_amount, events(title, amount, due_date)")
-    .eq("user_id", user.id)
-    .in("event_id", (events ?? []).map((e) => e.id));
-
-  const myStatusByEvent: Record<string, typeof myStatuses extends (infer T)[] | null ? T : never> = {};
-  for (const s of myStatuses ?? []) {
-    myStatusByEvent[s.event_id] = s;
   }
 
   const grandProgressPercent = grandTotalUsers > 0 ? Math.round((grandPaidUsers / grandTotalUsers) * 100) : 0;
