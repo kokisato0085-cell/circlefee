@@ -24,6 +24,10 @@ export const metadata: Metadata = {
   title: "サークル費用管理",
   description: "サークルの会費・集金を管理するアプリ",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192.svg",
+    apple: "/icon-192.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
