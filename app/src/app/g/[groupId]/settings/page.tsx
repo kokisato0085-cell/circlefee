@@ -46,6 +46,9 @@ export default async function SettingsPage({
         )}
 
         <div className="pt-4 border-t space-y-4">
+          <Link href="/settings">
+            <Button variant="outline" className="w-full">アカウント設定</Button>
+          </Link>
           <PushToggle />
           <LogoutButton />
         </div>

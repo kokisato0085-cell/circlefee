@@ -38,12 +38,17 @@ export default async function GroupHomePage({
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  const [{ data: events }, joinRequestsResult] = await Promise.all([
+  const [{ data: events }, { data: specialEvents }, joinRequestsResult] = await Promise.all([
     supabase
       .from("events")
       .select("id, title, amount, due_date, month, created_at")
       .eq("group_id", groupId)
       .eq("month", currentMonth)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("special_events")
+      .select("id, title, amount, created_at")
+      .eq("group_id", groupId)
       .order("created_at", { ascending: false }),
     isLeader
       ? supabase.rpc("get_pending_join_requests", { target_group_id: groupId })
@@ -134,6 +139,38 @@ export default async function GroupHomePage({
                   </Link>
                 );
               })}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">特別イベント</h2>
+            {isLeader && (
+              <Link href={`/g/${groupId}/special/new`}>
+                <Button size="sm">+ 作成</Button>
+              </Link>
+            )}
+          </div>
+          {(!specialEvents || specialEvents.length === 0) ? (
+            <p className="text-sm text-gray-500">特別イベントはありません</p>
+          ) : (
+            <div className="space-y-3">
+              {specialEvents.map((se) => (
+                <Link key={se.id} href={`/g/${groupId}/special/${se.id}`}>
+                  <Card className="hover:bg-gray-50 transition-colors cursor-pointer">
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{se.title}</span>
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">特別</span>
+                        </div>
+                        <span className="text-sm font-semibold">{se.amount.toLocaleString()}円</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
             </div>
           )}
         </div>
