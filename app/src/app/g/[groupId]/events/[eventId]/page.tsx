@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClaimButton } from "./claim-button";
 import { PaymentManageList } from "./payment-manage-list";
+import { EditEventForm } from "./edit-event-form";
 import { DeleteEventButton } from "./delete-event-button";
 import { ReminderButton } from "./reminder-button";
 
@@ -80,6 +81,16 @@ export default async function EventDetailPage({
             <Button variant="ghost" size="sm">← 戻る</Button>
           </Link>
           <h1 className="text-xl font-bold">{event.title}</h1>
+          {isLeaderOrMod && (
+            <EditEventForm
+              eventId={eventId}
+              groupId={groupId}
+              currentTitle={event.title}
+              currentAmount={event.amount}
+              currentDueDate={event.due_date}
+              currentDescription={event.description}
+            />
+          )}
         </div>
 
         <Card>

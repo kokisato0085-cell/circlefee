@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MonthSelector } from "./month-selector";
+import { ExportCsvButton } from "./export-csv-button";
 
 export default async function DashboardPage({
   params,
@@ -259,6 +260,21 @@ export default async function DashboardPage({
               </Card>
             );
           })
+        )}
+
+        {isLeaderOrMod && (
+          <ExportCsvButton
+            currentMonth={currentMonth}
+            events={eventBlocks.map((b) => ({
+              title: b.title,
+              amount: b.amount,
+              statuses: b.statuses.map((s) => ({
+                displayName: s.displayName,
+                status: s.status,
+                adjustedAmount: s.adjustedAmount,
+              })),
+            }))}
+          />
         )}
       </div>
     </div>

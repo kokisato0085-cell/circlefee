@@ -234,6 +234,52 @@ export async function updateSubStatus(
   return {};
 }
 
+export async function updateEvent(
+  eventId: string,
+  groupId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const parsed = createEventSchema.safeParse({
+    title: formData.get("title"),
+    amount: formData.get("amount"),
+    dueDate: formData.get("dueDate"),
+    description: formData.get("description"),
+  });
+
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || (membership.role !== "leader" && membership.role !== "moderator")) {
+    return { error: "権限者以上のみ編集できます" };
+  }
+
+  const { error } = await supabase
+    .from("events")
+    .update({
+      title: parsed.data.title,
+      amount: parsed.data.amount,
+      due_date: parsed.data.dueDate,
+      description: parsed.data.description,
+    })
+    .eq("id", eventId)
+    .eq("group_id", groupId);
+
+  if (error) return { error: "更新に失敗しました" };
+
+  revalidatePath(`/g/${groupId}/events/${eventId}`);
+  return {};
+}
+
 export async function deleteEvent(
   eventId: string,
   groupId: string

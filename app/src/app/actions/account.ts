@@ -30,6 +30,30 @@ export async function updateDisplayName(
   return {};
 }
 
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<ActionResult> {
+  if (!newPassword || newPassword.length < 8) {
+    return { error: "新しいパスワードは8文字以上です" };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email!,
+    password: currentPassword,
+  });
+  if (signInError) return { error: "現在のパスワードが正しくありません" };
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { error: "パスワードの更新に失敗しました" };
+
+  return {};
+}
+
 export async function deleteAccount(
   password: string
 ): Promise<ActionResult> {

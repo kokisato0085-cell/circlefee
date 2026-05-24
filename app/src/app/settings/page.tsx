@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DisplayNameForm } from "./display-name-form";
+import { ChangePasswordForm } from "./change-password-form";
 import { DeleteAccountSection } from "./delete-account-section";
 import { BackButton } from "./back-button";
 
@@ -38,6 +39,12 @@ export default async function AccountSettingsPage() {
           <CardContent className="py-4 space-y-2">
             <h2 className="font-semibold text-sm text-gray-500">メールアドレス</h2>
             <p className="text-sm">{user.email}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="py-4">
+            <ChangePasswordForm />
           </CardContent>
         </Card>
 
