@@ -53,6 +53,11 @@ export default function LoginPage() {
           <Button type="submit" className="w-full" disabled={pending}>
             {pending ? "ログイン中..." : "ログイン"}
           </Button>
+          <p className="text-center text-sm">
+            <Link href="/forgot-password" className="text-blue-600 hover:underline">
+              パスワードを忘れた方
+            </Link>
+          </p>
           <p className="text-center text-sm text-gray-600">
             アカウントをお持ちでない方は{" "}
             <Link href="/signup" className="text-blue-600 hover:underline">
