@@ -230,7 +230,7 @@
 
 | テーブル名 | 概要 |
 |-----------|------|
-| profiles | ユーザー情報（id=Auth UID, display_name, email） |
+| profiles | ユーザー情報（id=Auth UID, display_name） |
 | groups | グループ（id, name, password_hash, created_by） |
 | memberships | 所属・ロール（group_id, user_id, role, version） |
 | invite_links | 招待リンク（group_id, token, expires_at） |
@@ -253,7 +253,7 @@
 - 月次リセット: events に month カラムで月ごと管理
 
 **個人情報保護（大方針N対応・2026-05-21追記）:**
-- profiles.email の RLS: SELECT は本人（auth.uid() = id）のみ許可。他ユーザーは display_name のみ取得可
+- emailはprofilesテーブルに保存しない（auth.getUser()経由で本人のみ取得可能）
 - アカウント削除時: profiles を削除 → memberships, payment_statuses, notifications 等の user_id 参照先を匿名化（"退会済みユーザー" に置換）し、集計データの整合性を維持
 
 ### 中8 セキュリティ実装方針（確定: 2026-05-21）
@@ -264,7 +264,7 @@
 
 | テーブル | RLSポリシー |
 |---------|------------|
-| profiles | email列は本人のみSELECT可、display_nameは同グループメンバーに公開 |
+| profiles | 本人は全列SELECT可。同グループメンバーはdisplay_nameのみ取得可（emailはテーブルに保持しない） |
 | groups | 所属メンバーのみ全操作可能 |
 | memberships | 同グループSELECT可、INSERT/UPDATE/DELETEは部長のみ |
 | events, payment_statuses 等 | 同グループメンバーのみ（role別に操作制限） |
@@ -280,7 +280,7 @@
 
 **N-6 個人情報の最小収集:** 表示名+メールアドレスのみ。電話番号・住所・本名等は一切収集しない。
 
-**N-7 メールアドレス非公開:** RLSで本人以外のemail取得をブロック。API ResponseからもemailフィールドをフィルタリングRealtimeのsubscribe対象からprofilesを除外。
+**N-7 メールアドレス非公開:** profilesテーブルにemailを保持しない（auth.getUser()経由で本人のみ取得可能）。Realtimeのsubscribe対象からprofilesを除外。
 
 **N-8 アカウント削除フロー:** ユーザー要求 → 確認ダイアログ → 関連テーブルのuser_idを匿名IDに置換（集計保持） → profiles削除 → Supabase Authアカウント削除 → push_subscriptions削除 → ログアウト。部長は先に委譲してからのみ削除可能。
 
@@ -294,6 +294,8 @@
 |---|------|-----|-----------|
 | 1 | ログイン | /login | 未認証 |
 | 2 | 新規登録 | /signup | 未認証 |
+| 2a | パスワードリセット要求 | /forgot-password | 未認証 |
+| 2b | パスワードリセット実行 | /reset-password | 未認証（リンク経由） |
 | 3 | 招待リンク参加 | /invite/[token] | 認証済み |
 | 4 | グループ選択/作成 | /groups | 認証済み |
 | 5 | ホーム（掲示板） | /g/[groupId] | 全員 |
@@ -306,8 +308,8 @@
 | 12 | 会計ダッシュボード | /g/[groupId]/dashboard | 権限者以上 |
 | 13 | メンバー管理 | /g/[groupId]/admin/members | 部長のみ |
 | 14 | 権限者管理・部長委譲 | /g/[groupId]/admin/roles | 部長のみ |
-| 15 | 招待リンク管理 | /g/[groupId]/admin/invite | 部長のみ |
-| 16 | 特別イベント管理 | /g/[groupId]/admin/special | 部長のみ |
+| 15 | グループ設定 | /g/[groupId]/settings | 全員 |
+| 16 | 特別イベント作成 | /g/[groupId]/special/new | 部長のみ |
 | 17 | アカウント設定 | /settings | 認証済み |
 
 **ナビゲーション:** 下部タブバー（4タブ: ホーム/通知/メンバー/設定）。管理画面は設定タブ内にロール別メニュー表示。各画面にヘッダー戻るボタン。

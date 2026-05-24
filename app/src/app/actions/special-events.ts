@@ -26,6 +26,17 @@ export async function createSpecialEvent(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: "認証エラー" };
 
+    const { data: membership } = await supabase
+      .from("memberships")
+      .select("role")
+      .eq("group_id", groupId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (!membership || membership.role !== "leader") {
+      return { error: "部長のみ特別イベントを作成できます" };
+    }
+
     const { data: event, error: insertError } = await supabase
       .from("special_events")
       .insert({
@@ -85,6 +96,17 @@ export async function deleteSpecialEvent(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "認証エラー" };
 
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || membership.role !== "leader") {
+    return { error: "部長のみ特別イベントを削除できます" };
+  }
+
   await supabase.from("special_payment_statuses").delete().eq("special_event_id", specialEventId);
   await supabase.from("special_event_roles").delete().eq("special_event_id", specialEventId);
 
@@ -108,6 +130,17 @@ export async function addSpecialEventRole(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "認証エラー" };
 
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || membership.role !== "leader") {
+    return { error: "部長のみフォーム内権限者を設定できます" };
+  }
+
   const { error } = await supabase
     .from("special_event_roles")
     .insert({ special_event_id: specialEventId, user_id: targetUserId });
@@ -127,6 +160,19 @@ export async function removeSpecialEventRole(
   groupId: string
 ): Promise<ActionResult> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || membership.role !== "leader") {
+    return { error: "部長のみフォーム内権限者を削除できます" };
+  }
 
   const { error } = await supabase
     .from("special_event_roles")

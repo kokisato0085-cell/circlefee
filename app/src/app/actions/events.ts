@@ -30,6 +30,17 @@ export async function createEvent(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: "認証エラー" };
 
+    const { data: membership } = await supabase
+      .from("memberships")
+      .select("role")
+      .eq("group_id", groupId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (!membership || (membership.role !== "leader" && membership.role !== "moderator")) {
+      return { error: "権限者以上のみイベントを作成できます" };
+    }
+
     const now = new Date();
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -182,6 +193,17 @@ export async function approvePayment(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "認証エラー" };
 
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || (membership.role !== "leader" && membership.role !== "moderator")) {
+    return { error: "権限者以上のみ承認できます" };
+  }
+
   const { data: ps, error: fetchError } = await supabase
     .from("payment_statuses")
     .select("id, status, version, event_id")
@@ -243,6 +265,17 @@ export async function updateSubStatus(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "認証エラー" };
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || (membership.role !== "leader" && membership.role !== "moderator")) {
+    return { error: "権限者以上のみサブステータスを編集できます" };
+  }
 
   if (subStatus.length > 50) return { error: "サブステータスは50文字以内です" };
 
@@ -348,6 +381,17 @@ export async function adjustPaymentAmount(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "認証エラー" };
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || (membership.role !== "leader" && membership.role !== "moderator")) {
+    return { error: "権限者以上のみ金額を調整できます" };
+  }
 
   if (amount < 0 || amount > 999999) return { error: "金額は0〜999,999円です" };
 

@@ -132,6 +132,75 @@ export async function createInviteLink(groupId: string): Promise<ActionResult> {
   return { inviteUrl: `/invite/${data.token}` };
 }
 
+export async function updateGroupName(
+  groupId: string,
+  name: string
+): Promise<ActionResult> {
+  if (!name || name.length < 1 || name.length > 30) {
+    return { error: "グループ名は1〜30文字です" };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || membership.role !== "leader") {
+    return { error: "部長のみグループ名を変更できます" };
+  }
+
+  const { error } = await supabase
+    .from("groups")
+    .update({ name })
+    .eq("id", groupId);
+
+  if (error) return { error: "更新に失敗しました" };
+
+  revalidatePath(`/g/${groupId}`);
+  return {};
+}
+
+export async function updateGroupPassword(
+  groupId: string,
+  newPassword: string
+): Promise<ActionResult> {
+  if (!newPassword || newPassword.length < 4 || newPassword.length > 20 || !/^[a-zA-Z0-9]+$/.test(newPassword)) {
+    return { error: "パスワードは4〜20文字の英数字です" };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || membership.role !== "leader") {
+    return { error: "部長のみパスワードを変更できます" };
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+
+  const { error } = await supabase
+    .from("groups")
+    .update({ password_hash: passwordHash })
+    .eq("id", groupId);
+
+  if (error) return { error: "更新に失敗しました" };
+
+  return {};
+}
+
 export async function handleJoinRequest(
   requestId: string,
   action: "approve" | "reject"
@@ -148,6 +217,17 @@ export async function handleJoinRequest(
 
   if (fetchError || !request) return { error: "リクエストが見つかりません" };
   if (request.status !== "pending") return { error: "このリクエストは既に処理済みです" };
+
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("group_id", request.group_id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!membership || membership.role !== "leader") {
+    return { error: "部長のみリクエストを処理できます" };
+  }
 
   const { error: updateError } = await supabase
     .from("join_requests")

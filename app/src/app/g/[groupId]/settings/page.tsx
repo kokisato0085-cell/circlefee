@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "./logout-button";
 import { PushToggle } from "./push-toggle";
+import { GroupNameForm } from "./group-name-form";
+import { GroupPasswordForm } from "./group-password-form";
 
 export default async function SettingsPage({
   params,
@@ -15,12 +17,19 @@ export default async function SettingsPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
-    .from("memberships")
-    .select("role")
-    .eq("group_id", groupId)
-    .eq("user_id", user.id)
-    .single();
+  const [{ data: membership }, { data: group }] = await Promise.all([
+    supabase
+      .from("memberships")
+      .select("role")
+      .eq("group_id", groupId)
+      .eq("user_id", user.id)
+      .single(),
+    supabase
+      .from("groups")
+      .select("name")
+      .eq("id", groupId)
+      .single(),
+  ]);
 
   const isLeader = membership?.role === "leader";
 
@@ -34,8 +43,10 @@ export default async function SettingsPage({
         </Link>
 
         {isLeader && (
-          <div className="space-y-2 pt-4 border-t">
+          <div className="space-y-3 pt-4 border-t">
             <p className="text-sm font-semibold text-gray-500">管理 (部長)</p>
+            <GroupNameForm groupId={groupId} currentName={group?.name ?? ""} />
+            <GroupPasswordForm groupId={groupId} />
             <Link href={`/g/${groupId}/admin/members`}>
               <Button variant="outline" className="w-full">メンバー管理</Button>
             </Link>
