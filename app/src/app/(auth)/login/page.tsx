@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { login, type ActionResult } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "";
+
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(
-    async (_prev, formData) => login(formData),
+    async (_prev, formData) => login(formData, redirectTo),
     null
   );
 

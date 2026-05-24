@@ -39,7 +39,7 @@ export async function signup(formData: FormData): Promise<ActionResult> {
   return { success: true };
 }
 
-export async function login(formData: FormData): Promise<ActionResult> {
+export async function login(formData: FormData, redirectTo?: string): Promise<ActionResult> {
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -60,7 +60,7 @@ export async function login(formData: FormData): Promise<ActionResult> {
     return { error: "メールアドレスまたはパスワードが正しくありません" };
   }
 
-  redirect("/groups");
+  redirect(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/groups");
 }
 
 export async function logout(): Promise<void> {
