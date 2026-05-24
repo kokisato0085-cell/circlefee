@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DisplayNameForm } from "./display-name-form";
 import { DeleteAccountSection } from "./delete-account-section";
+import { BackButton } from "./back-button";
 
 export default async function AccountSettingsPage() {
   const supabase = await createClient();
@@ -21,9 +21,7 @@ export default async function AccountSettingsPage() {
     <div className="flex min-h-full flex-col px-4 py-6">
       <div className="mx-auto w-full max-w-md space-y-6">
         <div className="flex items-center gap-3">
-          <Link href="/groups">
-            <Button variant="ghost" size="sm">← 戻る</Button>
-          </Link>
+          <BackButton />
           <h1 className="text-xl font-bold">アカウント設定</h1>
         </div>
 
