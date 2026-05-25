@@ -28,7 +28,18 @@ export function InviteLinkSection({ groupId }: { groupId: string }) {
 
   async function handleCopy() {
     if (!inviteUrl) return;
-    await navigator.clipboard.writeText(inviteUrl);
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = inviteUrl;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
