@@ -15,12 +15,20 @@ export default async function GroupLayout({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { count: unreadCount } = await supabase
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("group_id", groupId)
-    .eq("target_user_id", user.id)
-    .eq("is_read", false);
+  const [{ count: unreadCount }, { data: events }] = await Promise.all([
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("group_id", groupId)
+      .eq("target_user_id", user.id)
+      .eq("is_read", false),
+    supabase
+      .from("events")
+      .select("id")
+      .eq("group_id", groupId),
+  ]);
+
+  const eventIds = (events ?? []).map((e) => e.id);
 
   const badge = unreadCount && unreadCount > 0 ? (unreadCount > 99 ? "99+" : String(unreadCount)) : null;
 
@@ -33,7 +41,7 @@ export default async function GroupLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <RealtimeProvider groupId={groupId} userId={user.id} />
+      <RealtimeProvider groupId={groupId} userId={user.id} eventIds={eventIds} />
       <div className="flex-1 pb-16">{children}</div>
       <nav className="fixed bottom-0 left-0 right-0 border-t bg-white">
         <div className="mx-auto flex max-w-md">

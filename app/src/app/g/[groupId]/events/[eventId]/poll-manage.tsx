@@ -50,6 +50,10 @@ export function PollManage({
 
     let result;
     if (poll) {
+      if (!confirm("投票を編集すると、既存の全投票がリセットされます。よろしいですか？")) {
+        setPending(false);
+        return;
+      }
       result = await updatePoll(poll.id, groupId, eventId, question, validOptions);
     } else {
       result = await createPoll(eventId, groupId, question, validOptions);

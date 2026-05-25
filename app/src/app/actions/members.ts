@@ -30,6 +30,45 @@ export async function removeMember(
   const leader = await verifyLeader(supabase, groupId, user.id);
   if (!leader) return { error: "部長のみ実行できます" };
 
+  const { data: groupEvents } = await supabase
+    .from("events")
+    .select("id")
+    .eq("group_id", groupId);
+
+  if (groupEvents && groupEvents.length > 0) {
+    const eventIds = groupEvents.map((e) => e.id);
+    await supabase
+      .from("payment_statuses")
+      .delete()
+      .in("event_id", eventIds)
+      .eq("user_id", targetUserId);
+  }
+
+  const { data: groupSpecialEvents } = await supabase
+    .from("special_events")
+    .select("id")
+    .eq("group_id", groupId);
+
+  if (groupSpecialEvents && groupSpecialEvents.length > 0) {
+    const specialIds = groupSpecialEvents.map((e) => e.id);
+    await supabase
+      .from("special_payment_statuses")
+      .delete()
+      .in("special_event_id", specialIds)
+      .eq("user_id", targetUserId);
+    await supabase
+      .from("special_event_roles")
+      .delete()
+      .in("special_event_id", specialIds)
+      .eq("user_id", targetUserId);
+  }
+
+  await supabase
+    .from("notifications")
+    .delete()
+    .eq("group_id", groupId)
+    .eq("target_user_id", targetUserId);
+
   const { error: deleteError } = await supabase
     .from("memberships")
     .delete()

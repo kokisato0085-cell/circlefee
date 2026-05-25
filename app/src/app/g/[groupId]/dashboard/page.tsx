@@ -30,8 +30,8 @@ export default async function DashboardPage({
 
   const isLeaderOrMod = membership.role === "leader" || membership.role === "moderator";
 
-  const now = new Date();
-  const currentMonth = queryMonth || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const currentMonth = queryMonth || `${jst.getUTCFullYear()}-${String(jst.getUTCMonth() + 1).padStart(2, "0")}`;
 
   const { data: events } = await supabase
     .from("events")
@@ -73,20 +73,15 @@ export default async function DashboardPage({
   if (events && events.length > 0) {
     const eventIds = events.map((e) => e.id);
 
-    const [{ data: statuses }, { data: myStatuses }] = await Promise.all([
-      supabase
-        .from("payment_statuses")
-        .select("id, event_id, user_id, status, sub_status, adjusted_amount, profiles(display_name)")
-        .in("event_id", eventIds),
-      supabase
-        .from("payment_statuses")
-        .select("event_id, status, adjusted_amount")
-        .eq("user_id", user.id)
-        .in("event_id", eventIds),
-    ]);
+    const { data: statuses } = await supabase
+      .from("payment_statuses")
+      .select("id, event_id, user_id, status, sub_status, adjusted_amount, profiles(display_name)")
+      .in("event_id", eventIds);
 
-    for (const s of myStatuses ?? []) {
-      myStatusByEvent[s.event_id] = s;
+    for (const s of statuses ?? []) {
+      if (s.user_id === user.id) {
+        myStatusByEvent[s.event_id] = { event_id: s.event_id, status: s.status as string, adjusted_amount: s.adjusted_amount as number | null };
+      }
     }
 
     const statusesByEvent: Record<string, typeof statuses> = {};

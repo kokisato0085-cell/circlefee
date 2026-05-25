@@ -156,27 +156,14 @@ export async function vote(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "認証エラー" };
 
-  const { data: existing } = await supabase
+  const { error } = await supabase
     .from("event_poll_votes")
-    .select("id")
-    .eq("poll_id", pollId)
-    .eq("user_id", user.id)
-    .maybeSingle();
+    .upsert(
+      { poll_id: pollId, user_id: user.id, option_id: optionId },
+      { onConflict: "poll_id,user_id" }
+    );
 
-  if (existing) {
-    const { error } = await supabase
-      .from("event_poll_votes")
-      .update({ option_id: optionId })
-      .eq("id", existing.id);
-
-    if (error) return { error: "投票の更新に失敗しました" };
-  } else {
-    const { error } = await supabase
-      .from("event_poll_votes")
-      .insert({ poll_id: pollId, user_id: user.id, option_id: optionId });
-
-    if (error) return { error: "投票に失敗しました" };
-  }
+  if (error) return { error: "投票に失敗しました" };
 
   revalidatePath(`/g/${groupId}/events/${eventId}`);
   return {};

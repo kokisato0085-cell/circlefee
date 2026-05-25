@@ -49,9 +49,16 @@ export async function sendReminder(
     return { error: "権限者以上のみ催促できます" };
   }
 
-  if (targetUserIds.length === 0) return { error: "催促対象がいません" };
+  const { data: unpaidStatuses } = await supabase
+    .from("payment_statuses")
+    .select("user_id")
+    .eq("event_id", eventId)
+    .eq("status", "unpaid");
 
-  const notifications = targetUserIds.map((uid) => ({
+  const verifiedUserIds = (unpaidStatuses ?? []).map((s) => s.user_id);
+  if (verifiedUserIds.length === 0) return { error: "催促対象がいません" };
+
+  const notifications = verifiedUserIds.map((uid) => ({
     group_id: groupId,
     target_user_id: uid,
     type: "reminder" as const,
@@ -62,7 +69,7 @@ export async function sendReminder(
   const { error } = await supabase.from("notifications").insert(notifications);
   if (error) return { error: "催促通知の送信に失敗しました" };
 
-  sendPushToUsers(targetUserIds, {
+  sendPushToUsers(verifiedUserIds, {
     title: "催促通知",
     body: `「${eventTitle}」の支払いが未完了です`,
     url: `/g/${groupId}/events/${eventId}`,

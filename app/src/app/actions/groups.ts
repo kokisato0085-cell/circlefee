@@ -246,6 +246,32 @@ export async function handleJoinRequest(
       });
 
     if (memberError) return { error: "メンバー追加に失敗しました" };
+
+    const { data: activeEvents } = await supabase
+      .from("events")
+      .select("id")
+      .eq("group_id", request.group_id);
+
+    if (activeEvents && activeEvents.length > 0) {
+      const newStatuses = activeEvents.map((e) => ({
+        event_id: e.id,
+        user_id: request.user_id,
+      }));
+      await supabase.from("payment_statuses").insert(newStatuses);
+    }
+
+    const { data: activeSpecialEvents } = await supabase
+      .from("special_events")
+      .select("id")
+      .eq("group_id", request.group_id);
+
+    if (activeSpecialEvents && activeSpecialEvents.length > 0) {
+      const newSpecialStatuses = activeSpecialEvents.map((e) => ({
+        special_event_id: e.id,
+        user_id: request.user_id,
+      }));
+      await supabase.from("special_payment_statuses").insert(newSpecialStatuses);
+    }
   }
 
   revalidatePath(`/g/${request.group_id}`);

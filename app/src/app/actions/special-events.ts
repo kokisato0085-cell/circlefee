@@ -107,9 +107,6 @@ export async function deleteSpecialEvent(
     return { error: "部長のみ特別イベントを削除できます" };
   }
 
-  await supabase.from("special_payment_statuses").delete().eq("special_event_id", specialEventId);
-  await supabase.from("special_event_roles").delete().eq("special_event_id", specialEventId);
-
   const { error } = await supabase
     .from("special_events")
     .delete()
@@ -204,13 +201,16 @@ export async function claimSpecialPayment(
   if (!ps) return { error: "ステータスが見つかりません" };
   if (ps.status !== "unpaid") return { error: "申告済みまたは支払い済みです" };
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("special_payment_statuses")
     .update({ status: "claimed", version: ps.version + 1, updated_at: new Date().toISOString() })
     .eq("id", ps.id)
-    .eq("version", ps.version);
+    .eq("version", ps.version)
+    .select("id")
+    .maybeSingle();
 
   if (error) return { error: "更新に失敗しました" };
+  if (!updated) return { error: "データが更新されています。ページを再読み込みしてください" };
 
   revalidatePath(`/g/${groupId}/special/${specialEventId}`);
   return {};
@@ -226,6 +226,26 @@ export async function approveSpecialPayment(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "認証エラー" };
 
+  const [{ data: membership }, { data: eventRole }] = await Promise.all([
+    supabase
+      .from("memberships")
+      .select("role")
+      .eq("group_id", groupId)
+      .eq("user_id", user.id)
+      .single(),
+    supabase
+      .from("special_event_roles")
+      .select("id")
+      .eq("special_event_id", specialEventId)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
+
+  const isLeaderOrMod = membership?.role === "leader" || membership?.role === "moderator";
+  if (!isLeaderOrMod && !eventRole) {
+    return { error: "権限者以上またはフォーム内権限者のみ承認できます" };
+  }
+
   const { data: ps } = await supabase
     .from("special_payment_statuses")
     .select("id, status, version, user_id")
@@ -238,14 +258,20 @@ export async function approveSpecialPayment(
   if (action === "approve" && ps.status !== "claimed") {
     return { error: "申告中のステータスのみ承認できます" };
   }
+  if (action === "reject" && ps.status !== "claimed") {
+    return { error: "申告中のステータスのみ差し戻しできます" };
+  }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("special_payment_statuses")
     .update({ status: newStatus, version: ps.version + 1, updated_at: new Date().toISOString() })
     .eq("id", ps.id)
-    .eq("version", ps.version);
+    .eq("version", ps.version)
+    .select("id")
+    .maybeSingle();
 
   if (error) return { error: "更新に失敗しました" };
+  if (!updated) return { error: "データが更新されています。ページを再読み込みしてください" };
 
   revalidatePath(`/g/${groupId}/special/${specialEventId}`);
   return {};

@@ -41,8 +41,8 @@ export async function createEvent(
       return { error: "権限者以上のみイベントを作成できます" };
     }
 
-    const now = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const month = `${jst.getUTCFullYear()}-${String(jst.getUTCMonth() + 1).padStart(2, "0")}`;
 
     const { data: event, error: insertError } = await supabase
       .from("events")
@@ -143,13 +143,16 @@ export async function claimPayment(
   if (fetchError || !ps) return { error: "支払いステータスが見つかりません" };
   if (ps.status !== "unpaid") return { error: "申告済みまたは支払い済みです" };
 
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from("payment_statuses")
     .update({ status: "claimed", version: ps.version + 1, updated_at: new Date().toISOString() })
     .eq("id", ps.id)
-    .eq("version", ps.version);
+    .eq("version", ps.version)
+    .select("id")
+    .maybeSingle();
 
   if (updateError) return { error: "更新に失敗しました。再度お試しください" };
+  if (!updated) return { error: "データが更新されています。ページを再読み込みしてください" };
 
   const [{ data: profile }, { data: event }, { data: mods }] = await Promise.all([
     supabase.from("profiles").select("display_name").eq("id", user.id).single(),
@@ -217,6 +220,9 @@ export async function approvePayment(
   if (action === "approve" && ps.status !== "claimed") {
     return { error: "申告中のステータスのみ承認できます" };
   }
+  if (action === "reject" && ps.status !== "claimed") {
+    return { error: "申告中のステータスのみ差し戻しできます" };
+  }
 
   const { data: psDetail } = await supabase
     .from("payment_statuses")
@@ -224,13 +230,16 @@ export async function approvePayment(
     .eq("id", paymentStatusId)
     .single();
 
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from("payment_statuses")
     .update({ status: newStatus, version: ps.version + 1, updated_at: new Date().toISOString() })
     .eq("id", ps.id)
-    .eq("version", ps.version);
+    .eq("version", ps.version)
+    .select("id")
+    .maybeSingle();
 
   if (updateError) return { error: "更新に失敗しました。再度お試しください" };
+  if (!updated) return { error: "データが更新されています。ページを再読み込みしてください" };
 
   if (psDetail) {
     const ev = psDetail.events as unknown as { title: string };
@@ -355,13 +364,6 @@ export async function deleteEvent(
     return { error: "権限者以上のみ削除できます" };
   }
 
-  const { error: deleteStatusesError } = await supabase
-    .from("payment_statuses")
-    .delete()
-    .eq("event_id", eventId);
-
-  if (deleteStatusesError) return { error: "支払いデータの削除に失敗しました" };
-
   const { error: deleteEventError } = await supabase
     .from("events")
     .delete()
@@ -393,7 +395,7 @@ export async function adjustPaymentAmount(
     return { error: "権限者以上のみ金額を調整できます" };
   }
 
-  if (amount < 0 || amount > 999999) return { error: "金額は0〜999,999円です" };
+  if (!Number.isInteger(amount) || amount < 0 || amount > 999999) return { error: "金額は0〜999,999の整数です" };
 
   const { data: ps } = await supabase
     .from("payment_statuses")
