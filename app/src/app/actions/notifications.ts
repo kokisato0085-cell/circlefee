@@ -31,7 +31,6 @@ export async function markNotificationsRead(
 export async function sendReminder(
   groupId: string,
   eventId: string,
-  targetUserIds: string[],
   eventTitle: string
 ): Promise<ActionResult> {
   const supabase = await createClient();

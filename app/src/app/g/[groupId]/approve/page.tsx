@@ -25,8 +25,8 @@ export default async function ApprovePage({
     redirect(`/g/${groupId}`);
   }
 
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const currentMonth = `${jst.getUTCFullYear()}-${String(jst.getUTCMonth() + 1).padStart(2, "0")}`;
 
   const { data: events } = await supabase
     .from("events")

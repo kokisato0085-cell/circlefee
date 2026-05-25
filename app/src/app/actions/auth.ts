@@ -60,7 +60,8 @@ export async function login(formData: FormData, redirectTo?: string): Promise<Ac
     return { error: "メールアドレスまたはパスワードが正しくありません" };
   }
 
-  redirect(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/groups");
+  const safeRedirect = redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//") ? redirectTo : "/groups";
+  redirect(safeRedirect);
 }
 
 export async function logout(): Promise<void> {

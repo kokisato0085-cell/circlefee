@@ -20,7 +20,7 @@ export function ReminderButton({
 
   async function handleSend() {
     setError(null);
-    const result = await sendReminder(groupId, eventId, unpaidUserIds, eventTitle);
+    const result = await sendReminder(groupId, eventId, eventTitle);
     if (result.error) {
       setError(result.error);
       return;

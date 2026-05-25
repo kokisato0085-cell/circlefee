@@ -26,7 +26,7 @@ export async function updateSession(request: NextRequest) {
   );
 
   const code = request.nextUrl.searchParams.get("code");
-  if (code) {
+  if (code && !request.nextUrl.pathname.startsWith("/api/auth/callback")) {
     await supabase.auth.exchangeCodeForSession(code);
     const url = request.nextUrl.clone();
     url.searchParams.delete("code");
