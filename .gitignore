@@ -1,12 +1,23 @@
-# エージェント作業ファイル（プロジェクト固有のため除外推奨）
-# 必要に応じてコメントアウトしてください
+# === サークル費用管理アプリ以外を除外 ===
+# app/ 配下のみをGitHub管理対象とする
 
-# メッセージキュー（実行時に生成される）
-# messages.json
+# 管理ファイル（ローカル専用）
+.claude/
+CLAUDE.md
+DOCS/
+FACT/
+agents/
+assets/
+game/
+rules/
+scripts/
+status/
 
-# 成果物フォルダ（エージェントが生成したファイル）
-# artifacts/*
-# !artifacts/.gitkeep
+# ローカル起動スクリプト
+*.bat
+*.ahk
+start.sh
+code.txt
 
 # LibreOffice ロックファイル
 .~lock.*
@@ -22,3 +33,10 @@ __pycache__/
 
 # 一時ファイル
 cat
+
+# Node.js
+app/node_modules/
+app/.next/
+
+# 環境変数
+app/.env.local
