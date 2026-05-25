@@ -168,6 +168,13 @@
 4. Supabaseダッシュボードに入力
 5. 送信テスト
 
+**実施結果（2026-05-25）:**
+- 共有ドメイン `onboarding@resend.dev` はオーナーメールにしか送信不可と判明
+- Cloudflareで `circlefee.com` ドメイン取得
+- Resendでドメイン認証完了（DKIM/SPF/DMARC）
+- Supabase SMTP Sender: `noreply@circlefee.com`
+- 送信テスト成功（任意アドレスへ確認メール配信確認済み）
+
 ---
 
 ## 中方針一覧
