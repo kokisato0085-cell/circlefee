@@ -1,6 +1,8 @@
 -- 009: 招待リンクからグループ情報を取得するRPC関数
 -- 既にSupabase SQL Editorで手動適用済みだが、マイグレーション管理に追加
 
+drop function if exists get_invite_group_info(uuid);
+
 create or replace function get_invite_group_info(invite_token uuid)
 returns table (
   group_id uuid,
