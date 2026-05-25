@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """サークル費用管理アプリ 方針ファイル PDF生成スクリプト"""
 
+import os
+
 from fpdf import FPDF
 
 FONT_PATH = "/mnt/c/Windows/Fonts/NotoSansJP-VF.ttf"
-OUTPUT = "/mnt/e//app/docs/circle_fee_app_policy.pdf"
+OUTPUT = os.path.join(os.path.dirname(__file__), "circle_fee_app_policy.pdf")
 
 
 class PolicyPDF(FPDF):
