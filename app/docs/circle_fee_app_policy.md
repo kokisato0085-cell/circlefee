@@ -1,6 +1,6 @@
 # サークル費用管理アプリ 方針ファイル
 
-確定日: 2026-05-19
+確定日: 2026-05-19（最終更新: 2026-05-27）
 
 ---
 
@@ -24,6 +24,8 @@
 | N | 個人情報保護・データセキュリティ | 通信暗号化、RLS、パスワードハッシュ化、個人情報最小収集・非公開、アカウント削除権 |
 | O | イベント投票機能 | 権限者以上がイベントに投票を追加、メンバーが選択肢から投票、名前横にバッジ表示 |
 | P | メール送信基盤(Resend) | Supabase内蔵メールのレート制限を解消、ResendをカスタムSMTPとして設定 |
+| Q | 支払い申告メモ機能 | 支払い申告時に日付・場所・受取人・メッセージを記録。本人+権限者のみ閲覧可 |
+| R | iOS PWAインストール対応 | PNGアイコン生成・apple-touch-icon設定でiOS Safariからのインストールを可能にする |
 
 ---
 
@@ -175,6 +177,40 @@
 - Supabase SMTP Sender: `noreply@circlefee.com`
 - 送信テスト成功（任意アドレスへ確認メール配信確認済み）
 
+### 大方針Q詳細: 支払い申告メモ機能
+
+**概要:** 会計係2人体制でのトラブル防止のため、支払い申告時に日付・場所・受取人・メッセージを記録する。
+
+**申告メモ項目:**
+
+| 項目 | カラム | 型 | 必須/任意 | 制限 |
+|------|--------|-----|----------|------|
+| 支払日 | claim_date | date | 必須 | カレンダーピッカー |
+| 場所 | claim_place | text | 必須 | 200文字以内 |
+| 受取人 | claim_recipient | text | 必須 | 100文字以内 |
+| メッセージ | claim_message | text | 任意 | 500文字以内 |
+
+**閲覧権限:** 申告メモは本人+権限者以上のみ閲覧可能。
+
+**表示箇所:**
+- イベント詳細画面「あなたのステータス」セクション
+- 承認画面（権限者以上）
+- メンバー別ステータス一覧（権限者以上）
+
+**DB変更:** payment_statusesテーブルに claim_date, claim_place, claim_recipient, claim_message カラムを追加（マイグレーション011, 012）。
+
+### 大方針R詳細: iOS PWAインストール対応
+
+**背景:** iOS SafariはWeb App ManifestのSVGアイコンを認識せず、「ホーム画面に追加」してもPWAとしてインストールできなかった。
+
+**対応内容:**
+
+| 項目 | 変更内容 |
+|------|---------|
+| PNGアイコン | 192x192, 512x512, 180x180のPNGを生成・配置 |
+| manifest.json | アイコン参照をPNGに変更、`id`フィールド追加、SVGはフォールバックとして残存 |
+| apple-touch-icon | layout.tsxのmetadataに`icons.apple`を設定（180x180 PNG） |
+
 ---
 
 ## 中方針一覧
@@ -269,7 +305,7 @@
 | invite_links | 招待リンク（group_id, token, expires_at） |
 | join_requests | 参加リクエスト（group_id, user_id, status） |
 | events | 集金イベント（group_id, title, amount, due_date, month） |
-| payment_statuses | 支払いステータス（event_id, user_id, status, sub_status, adjusted_amount, version） |
+| payment_statuses | 支払いステータス（event_id, user_id, status, sub_status, adjusted_amount, version, claim_date, claim_place, claim_recipient, claim_message） |
 | special_events | 特別イベント（group_id, title, amount, created_by） |
 | special_event_roles | フォーム内権限者（special_event_id, user_id） |
 | special_payment_statuses | 特別イベント支払い（special_event_id, user_id, status, version） |
