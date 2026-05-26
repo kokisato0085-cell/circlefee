@@ -30,6 +30,9 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "サークル費用管理",
   },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
