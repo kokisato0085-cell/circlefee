@@ -40,13 +40,16 @@ export default async function ApprovePage({
     displayName: string;
     amount: number;
     subStatus: string | null;
+    claimDate: string | null;
+    claimPlace: string | null;
+    claimRecipient: string | null;
   }[] = [];
 
   if (events && events.length > 0) {
     const eventIds = events.map((e) => e.id);
     const { data: claimed } = await supabase
       .from("payment_statuses")
-      .select("id, event_id, user_id, sub_status, adjusted_amount, profiles(display_name)")
+      .select("id, event_id, user_id, sub_status, adjusted_amount, claim_date, claim_place, claim_recipient, profiles(display_name)")
       .in("event_id", eventIds)
       .eq("status", "claimed");
 
@@ -60,6 +63,9 @@ export default async function ApprovePage({
         displayName: (c.profiles as unknown as { display_name: string }).display_name,
         amount: c.adjusted_amount ?? ev?.amount ?? 0,
         subStatus: c.sub_status,
+        claimDate: c.claim_date,
+        claimPlace: c.claim_place,
+        claimRecipient: c.claim_recipient,
       };
     });
   }

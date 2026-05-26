@@ -43,13 +43,13 @@ export default async function EventDetailPage({
   const [{ data: myStatus }, { data: allStatuses }, { data: pollData }] = await Promise.all([
     supabase
       .from("payment_statuses")
-      .select("id, status, version")
+      .select("id, status, version, claim_date, claim_place, claim_recipient")
       .eq("event_id", eventId)
       .eq("user_id", user.id)
       .single(),
     supabase
       .from("payment_statuses")
-      .select("id, user_id, status, sub_status, adjusted_amount, version, profiles(display_name)")
+      .select("id, user_id, status, sub_status, adjusted_amount, version, claim_date, claim_place, claim_recipient, profiles(display_name)")
       .eq("event_id", eventId),
     supabase
       .from("event_polls")
@@ -122,6 +122,9 @@ export default async function EventDetailPage({
     adjustedAmount: s.adjusted_amount as number | null,
     version: s.version,
     voteLabel: voteByUserId[s.user_id] ?? null,
+    claimDate: s.claim_date as string | null,
+    claimPlace: s.claim_place as string | null,
+    claimRecipient: s.claim_recipient as string | null,
   }));
 
   return (
@@ -205,6 +208,14 @@ export default async function EventDetailPage({
                   <ClaimButton eventId={eventId} groupId={groupId} />
                 )}
               </div>
+              {(myStatus.status === "claimed" || myStatus.status === "paid") && myStatus.claim_date && (
+                <div className="mt-2 bg-blue-50 rounded-md p-2 text-xs space-y-0.5">
+                  <p className="font-medium text-blue-700">申告メモ</p>
+                  <p><span className="text-gray-500">日付:</span> {myStatus.claim_date}</p>
+                  <p><span className="text-gray-500">場所:</span> {myStatus.claim_place}</p>
+                  <p><span className="text-gray-500">受取人:</span> {myStatus.claim_recipient}</p>
+                </div>
+              )}
               {myStatus.status === "claimed" && (
                 <p className="mt-2 text-sm text-gray-500">
                   権限者の承認をお待ちください

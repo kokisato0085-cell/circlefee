@@ -11,6 +11,9 @@ type Approval = {
   displayName: string;
   amount: number;
   subStatus: string | null;
+  claimDate: string | null;
+  claimPlace: string | null;
+  claimRecipient: string | null;
 };
 
 export function ApproveList({
@@ -65,6 +68,14 @@ export function ApproveList({
                 </div>
                 {a.subStatus && (
                   <p className="text-xs text-gray-400 mb-2">memo: {a.subStatus}</p>
+                )}
+                {a.claimDate && (
+                  <div className="bg-blue-50 rounded-md p-2 text-xs space-y-0.5 mb-2">
+                    <p className="font-medium text-blue-700">申告メモ</p>
+                    <p><span className="text-gray-500">日付:</span> {a.claimDate}</p>
+                    <p><span className="text-gray-500">場所:</span> {a.claimPlace}</p>
+                    <p><span className="text-gray-500">受取人:</span> {a.claimRecipient}</p>
+                  </div>
                 )}
                 <div className="flex gap-2">
                   <Button
