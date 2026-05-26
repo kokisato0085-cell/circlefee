@@ -43,13 +43,13 @@ export default async function EventDetailPage({
   const [{ data: myStatus }, { data: allStatuses }, { data: pollData }] = await Promise.all([
     supabase
       .from("payment_statuses")
-      .select("id, status, version, claim_date, claim_place, claim_recipient")
+      .select("id, status, version, claim_date, claim_place, claim_recipient, claim_message")
       .eq("event_id", eventId)
       .eq("user_id", user.id)
       .single(),
     supabase
       .from("payment_statuses")
-      .select("id, user_id, status, sub_status, adjusted_amount, version, claim_date, claim_place, claim_recipient, profiles(display_name)")
+      .select("id, user_id, status, sub_status, adjusted_amount, version, claim_date, claim_place, claim_recipient, claim_message, profiles(display_name)")
       .eq("event_id", eventId),
     supabase
       .from("event_polls")
@@ -125,6 +125,7 @@ export default async function EventDetailPage({
     claimDate: s.claim_date as string | null,
     claimPlace: s.claim_place as string | null,
     claimRecipient: s.claim_recipient as string | null,
+    claimMessage: s.claim_message as string | null,
   }));
 
   return (
@@ -214,6 +215,9 @@ export default async function EventDetailPage({
                   <p><span className="text-gray-500">日付:</span> {myStatus.claim_date}</p>
                   <p><span className="text-gray-500">場所:</span> {myStatus.claim_place}</p>
                   <p><span className="text-gray-500">受取人:</span> {myStatus.claim_recipient}</p>
+                  {myStatus.claim_message && (
+                    <p><span className="text-gray-500">メッセージ:</span> {myStatus.claim_message}</p>
+                  )}
                 </div>
               )}
               {myStatus.status === "claimed" && (

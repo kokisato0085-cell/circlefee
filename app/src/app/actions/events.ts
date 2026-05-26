@@ -128,7 +128,7 @@ export async function createEvent(
 export async function claimPayment(
   eventId: string,
   groupId: string,
-  memo?: { claimDate: string; claimPlace: string; claimRecipient: string }
+  memo?: { claimDate: string; claimPlace: string; claimRecipient: string; claimMessage?: string }
 ): Promise<ActionResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -153,6 +153,7 @@ export async function claimPayment(
     updateData.claim_date = memo.claimDate;
     updateData.claim_place = memo.claimPlace;
     updateData.claim_recipient = memo.claimRecipient;
+    if (memo.claimMessage) updateData.claim_message = memo.claimMessage;
   }
 
   const { data: updated, error: updateError } = await supabase

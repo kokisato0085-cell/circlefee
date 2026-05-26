@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { claimPayment } from "@/app/actions/events";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 export function ClaimButton({ eventId, groupId }: { eventId: string; groupId: string }) {
@@ -15,6 +16,7 @@ export function ClaimButton({ eventId, groupId }: { eventId: string; groupId: st
   const [claimDate, setClaimDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [claimPlace, setClaimPlace] = useState("");
   const [claimRecipient, setClaimRecipient] = useState("");
+  const [claimMessage, setClaimMessage] = useState("");
 
   function handleSubmit() {
     if (!claimDate || !claimPlace.trim() || !claimRecipient.trim()) {
@@ -28,6 +30,7 @@ export function ClaimButton({ eventId, groupId }: { eventId: string; groupId: st
         claimDate,
         claimPlace: claimPlace.trim(),
         claimRecipient: claimRecipient.trim(),
+        claimMessage: claimMessage.trim() || undefined,
       });
       if (result.error) {
         setClaimed(false);
@@ -87,6 +90,18 @@ export function ClaimButton({ eventId, groupId }: { eventId: string; groupId: st
           maxLength={100}
           required
           className="h-8 text-sm"
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="claim-message" className="text-xs">メッセージ（任意）</Label>
+        <Textarea
+          id="claim-message"
+          value={claimMessage}
+          onChange={(e) => setClaimMessage(e.target.value)}
+          placeholder="例: 領収書は次回持参します"
+          maxLength={500}
+          rows={2}
+          className="text-sm"
         />
       </div>
       <div className="flex gap-2">
