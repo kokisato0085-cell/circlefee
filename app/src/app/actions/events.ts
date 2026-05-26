@@ -127,7 +127,8 @@ export async function createEvent(
 
 export async function claimPayment(
   eventId: string,
-  groupId: string
+  groupId: string,
+  memo?: { claimDate: string; claimPlace: string; claimRecipient: string }
 ): Promise<ActionResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -143,9 +144,20 @@ export async function claimPayment(
   if (fetchError || !ps) return { error: "支払いステータスが見つかりません" };
   if (ps.status !== "unpaid") return { error: "申告済みまたは支払い済みです" };
 
+  const updateData: Record<string, unknown> = {
+    status: "claimed",
+    version: ps.version + 1,
+    updated_at: new Date().toISOString(),
+  };
+  if (memo) {
+    updateData.claim_date = memo.claimDate;
+    updateData.claim_place = memo.claimPlace;
+    updateData.claim_recipient = memo.claimRecipient;
+  }
+
   const { data: updated, error: updateError } = await supabase
     .from("payment_statuses")
-    .update({ status: "claimed", version: ps.version + 1, updated_at: new Date().toISOString() })
+    .update(updateData)
     .eq("id", ps.id)
     .eq("version", ps.version)
     .select("id")

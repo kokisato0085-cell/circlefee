@@ -15,6 +15,9 @@ type MemberStatus = {
   adjustedAmount: number | null;
   version: number;
   voteLabel: string | null;
+  claimDate: string | null;
+  claimPlace: string | null;
+  claimRecipient: string | null;
 };
 
 const statusLabels: Record<string, { text: string; color: string }> = {
@@ -127,6 +130,15 @@ function MemberStatusCard({
             {label.text}
           </span>
         </div>
+
+        {(currentStatus === "claimed" || currentStatus === "paid") && status.claimDate && (
+          <div className="bg-blue-50 rounded-md p-2 text-xs space-y-0.5">
+            <p className="font-medium text-blue-700">申告メモ</p>
+            <p><span className="text-gray-500">日付:</span> {status.claimDate}</p>
+            <p><span className="text-gray-500">場所:</span> {status.claimPlace}</p>
+            <p><span className="text-gray-500">受取人:</span> {status.claimRecipient}</p>
+          </div>
+        )}
 
         {currentStatus === "claimed" && (
           <div className="flex gap-2">

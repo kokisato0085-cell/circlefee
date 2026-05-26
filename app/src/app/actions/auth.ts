@@ -9,7 +9,7 @@ export type ActionResult = {
   success?: boolean;
 };
 
-export async function signup(formData: FormData): Promise<ActionResult> {
+export async function signup(formData: FormData, redirectTo?: string): Promise<ActionResult> {
   const parsed = signupSchema.safeParse({
     displayName: formData.get("displayName"),
     email: formData.get("email"),
@@ -21,6 +21,8 @@ export async function signup(formData: FormData): Promise<ActionResult> {
   }
 
   const supabase = await createClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  const safeNext = redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//") ? redirectTo : "/groups";
 
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
@@ -29,6 +31,7 @@ export async function signup(formData: FormData): Promise<ActionResult> {
       data: {
         display_name: parsed.data.displayName,
       },
+      emailRedirectTo: `${siteUrl}/api/auth/callback?next=${encodeURIComponent(safeNext)}`,
     },
   });
 
@@ -75,7 +78,7 @@ export async function resetPasswordEmail(formData: FormData): Promise<ActionResu
   if (!email) return { error: "メールアドレスを入力してください" };
 
   const supabase = await createClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${siteUrl}/api/auth/callback?next=/reset-password`,
   });

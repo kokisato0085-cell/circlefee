@@ -1,6 +1,8 @@
 "use client";
 
+import { Suspense } from "react";
 import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signup, type ActionResult } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -9,8 +11,19 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="py-8 text-center text-gray-400">読み込み中...</div>}>
+      <SignupContent />
+    </Suspense>
+  );
+}
+
+function SignupContent() {
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "";
+
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(
-    async (_prev, formData) => signup(formData),
+    async (_prev, formData) => signup(formData, redirectTo),
     null
   );
 
@@ -25,7 +38,7 @@ export default function SignupPage() {
             入力されたメールアドレスに確認メールを送信しました。
             メール内のリンクをクリックして登録を完了してください。
           </p>
-          <Link href="/login">
+          <Link href={redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login"}>
             <Button variant="outline" className="w-full">
               ログイン画面へ
             </Button>
@@ -85,7 +98,7 @@ export default function SignupPage() {
           </Button>
           <p className="text-center text-sm text-gray-600">
             すでにアカウントをお持ちの方は{" "}
-            <Link href="/login" className="text-blue-600 hover:underline">
+            <Link href={redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login"} className="text-blue-600 hover:underline">
               ログイン
             </Link>
           </p>
