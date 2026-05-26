@@ -54,7 +54,7 @@ export function LoginForm() {
       </p>
       <p className="text-center text-sm text-gray-600">
         アカウントをお持ちでない方は{" "}
-        <Link href="/signup" className="text-blue-600 hover:underline">
+        <Link href={redirectTo ? `/signup?redirect=${encodeURIComponent(redirectTo)}` : "/signup"} className="text-blue-600 hover:underline">
           新規登録
         </Link>
       </p>
