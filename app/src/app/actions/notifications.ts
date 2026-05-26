@@ -68,7 +68,7 @@ export async function sendReminder(
   const { error } = await supabase.from("notifications").insert(notifications);
   if (error) return { error: "催促通知の送信に失敗しました" };
 
-  sendPushToUsers(verifiedUserIds, {
+  await sendPushToUsers(verifiedUserIds, {
     title: "催促通知",
     body: `「${eventTitle}」の支払いが未完了です`,
     url: `/g/${groupId}/events/${eventId}`,

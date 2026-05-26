@@ -73,7 +73,7 @@ export async function createSpecialEvent(
             message: `特別イベント「${title}」が作成されました`,
           }));
           await supabase.from("notifications").insert(notifications);
-          sendPushToUsers(
+          await sendPushToUsers(
             otherMembers.map((m) => m.user_id),
             { title: "特別イベント", body: `「${title}」が作成されました`, url: `/g/${groupId}/special/${event.id}` }
           );
