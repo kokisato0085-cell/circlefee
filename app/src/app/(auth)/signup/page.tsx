@@ -23,7 +23,7 @@ function SignupContent() {
   const redirectTo = searchParams.get("redirect") || "";
 
   const [state, formAction, pending] = useActionState<ActionResult | null, FormData>(
-    async (_prev, formData) => signup(formData),
+    async (_prev, formData) => signup(formData, redirectTo),
     null
   );
 
