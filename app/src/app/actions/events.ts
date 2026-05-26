@@ -83,7 +83,7 @@ export async function createEvent(
         }));
         try {
           await supabase.from("notifications").insert(notifications);
-          sendPushToUsers(
+          await sendPushToUsers(
             otherMembers.map((m) => m.user_id),
             {
               title: "新しい集金",
@@ -186,7 +186,7 @@ export async function claimPayment(
       related_event_id: eventId,
     }));
     await supabase.from("notifications").insert(notifications);
-    sendPushToUsers(
+    await sendPushToUsers(
       mods.map((m) => m.user_id),
       {
         title: "支払い申告",
@@ -268,7 +268,7 @@ export async function approvePayment(
       message: msg,
       related_event_id: psDetail.event_id,
     });
-    sendPushToUser(psDetail.user_id, {
+    await sendPushToUser(psDetail.user_id, {
       title: action === "approve" ? "支払い承認" : "支払い差戻し",
       body: msg,
       url: `/g/${groupId}/events/${psDetail.event_id}`,
