@@ -14,6 +14,7 @@ type Approval = {
   claimDate: string | null;
   claimPlace: string | null;
   claimRecipient: string | null;
+  claimMessage: string | null;
 };
 
 export function ApproveList({
@@ -75,6 +76,9 @@ export function ApproveList({
                     <p><span className="text-gray-500">日付:</span> {a.claimDate}</p>
                     <p><span className="text-gray-500">場所:</span> {a.claimPlace}</p>
                     <p><span className="text-gray-500">受取人:</span> {a.claimRecipient}</p>
+                    {a.claimMessage && (
+                      <p><span className="text-gray-500">メッセージ:</span> {a.claimMessage}</p>
+                    )}
                   </div>
                 )}
                 <div className="flex gap-2">

@@ -18,6 +18,7 @@ type MemberStatus = {
   claimDate: string | null;
   claimPlace: string | null;
   claimRecipient: string | null;
+  claimMessage: string | null;
 };
 
 const statusLabels: Record<string, { text: string; color: string }> = {
@@ -137,6 +138,9 @@ function MemberStatusCard({
             <p><span className="text-gray-500">日付:</span> {status.claimDate}</p>
             <p><span className="text-gray-500">場所:</span> {status.claimPlace}</p>
             <p><span className="text-gray-500">受取人:</span> {status.claimRecipient}</p>
+            {status.claimMessage && (
+              <p><span className="text-gray-500">メッセージ:</span> {status.claimMessage}</p>
+            )}
           </div>
         )}
 
