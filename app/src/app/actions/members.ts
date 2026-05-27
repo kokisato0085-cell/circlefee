@@ -153,3 +153,128 @@ export async function transferLeader(
   revalidatePath(`/g/${groupId}`);
   return {};
 }
+
+export async function setGrade(
+  groupId: string,
+  targetUserId: string,
+  grade: number | null
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  const leader = await verifyLeader(supabase, groupId, user.id);
+  if (!leader) return { error: "部長のみ実行できます" };
+
+  if (grade !== null && (grade < 1 || grade > 4)) return { error: "学年は1〜4で指定してください" };
+
+  const { error } = await supabase
+    .from("memberships")
+    .update({ grade })
+    .eq("group_id", groupId)
+    .eq("user_id", targetUserId);
+
+  if (error) return { error: "学年の設定に失敗しました" };
+
+  revalidatePath(`/g/${groupId}`);
+  return {};
+}
+
+export async function createGroupRole(
+  groupId: string,
+  name: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  const leader = await verifyLeader(supabase, groupId, user.id);
+  if (!leader) return { error: "部長のみ実行できます" };
+
+  const trimmed = name.trim();
+  if (trimmed.length < 1 || trimmed.length > 20) return { error: "係名は1〜20文字で入力してください" };
+
+  const { error } = await supabase
+    .from("group_roles")
+    .insert({ group_id: groupId, name: trimmed });
+
+  if (error) {
+    if (error.code === "23505") return { error: "同じ名前の係が既に存在します" };
+    return { error: "係の作成に失敗しました" };
+  }
+
+  revalidatePath(`/g/${groupId}`);
+  return {};
+}
+
+export async function deleteGroupRole(
+  groupId: string,
+  roleId: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  const leader = await verifyLeader(supabase, groupId, user.id);
+  if (!leader) return { error: "部長のみ実行できます" };
+
+  const { error } = await supabase
+    .from("group_roles")
+    .delete()
+    .eq("id", roleId)
+    .eq("group_id", groupId);
+
+  if (error) return { error: "係の削除に失敗しました" };
+
+  revalidatePath(`/g/${groupId}`);
+  return {};
+}
+
+export async function assignMemberRole(
+  groupId: string,
+  membershipId: string,
+  groupRoleId: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  const leader = await verifyLeader(supabase, groupId, user.id);
+  if (!leader) return { error: "部長のみ実行できます" };
+
+  const { error } = await supabase
+    .from("member_roles")
+    .insert({ group_role_id: groupRoleId, membership_id: membershipId });
+
+  if (error) {
+    if (error.code === "23505") return { error: "既に割り当て済みです" };
+    return { error: "係の割り当てに失敗しました" };
+  }
+
+  revalidatePath(`/g/${groupId}`);
+  return {};
+}
+
+export async function removeMemberRole(
+  groupId: string,
+  membershipId: string,
+  groupRoleId: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  const leader = await verifyLeader(supabase, groupId, user.id);
+  if (!leader) return { error: "部長のみ実行できます" };
+
+  const { error } = await supabase
+    .from("member_roles")
+    .delete()
+    .eq("group_role_id", groupRoleId)
+    .eq("membership_id", membershipId);
+
+  if (error) return { error: "係の解除に失敗しました" };
+
+  revalidatePath(`/g/${groupId}`);
+  return {};
+}
