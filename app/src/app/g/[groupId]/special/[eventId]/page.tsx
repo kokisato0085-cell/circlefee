@@ -7,6 +7,7 @@ import { SpecialClaimButton } from "./special-claim-button";
 import { SpecialManageList } from "./special-manage-list";
 import { SpecialDeleteButton } from "./special-delete-button";
 import { SpecialRoleManager } from "./special-role-manager";
+import { SpecialMemberManager } from "./special-member-manager";
 
 export default async function SpecialEventDetailPage({
   params,
@@ -57,9 +58,18 @@ export default async function SpecialEventDetailPage({
     version: s.version,
   }));
 
-  const { data: members } = isLeader
+  const { data: members } = isEventAuthorized
     ? await supabase.from("memberships").select("user_id, profiles(display_name)").eq("group_id", groupId)
     : { data: null };
+
+  const participantUserIds = new Set((allStatuses ?? []).map((s) => s.user_id));
+
+  const availableMembers = (members ?? [])
+    .filter((m) => !participantUserIds.has(m.user_id))
+    .map((m) => ({
+      userId: m.user_id,
+      displayName: (m.profiles as unknown as { display_name: string }).display_name,
+    }));
 
   const memberOptions = (members ?? [])
     .filter((m) => !eventRoleUserIds.has(m.user_id))
@@ -127,6 +137,19 @@ export default async function SpecialEventDetailPage({
             statuses={memberStatuses}
             groupId={groupId}
             specialEventId={eventId}
+          />
+        )}
+
+        {isEventAuthorized && (
+          <SpecialMemberManager
+            specialEventId={eventId}
+            groupId={groupId}
+            participants={memberStatuses.map((s) => ({
+              userId: s.userId,
+              displayName: s.displayName,
+              status: s.status,
+            }))}
+            availableMembers={availableMembers}
           />
         )}
 

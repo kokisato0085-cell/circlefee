@@ -33,8 +33,8 @@ export async function createSpecialEvent(
       .eq("user_id", user.id)
       .single();
 
-    if (!membership || membership.role !== "leader") {
-      return { error: "部長のみ特別イベントを作成できます" };
+    if (!membership || (membership.role !== "leader" && membership.role !== "moderator")) {
+      return { error: "部長・権限者のみ特別イベントを作成できます" };
     }
 
     const { data: event, error: insertError } = await supabase
@@ -51,35 +51,10 @@ export async function createSpecialEvent(
 
     if (insertError) return { error: `作成エラー: ${insertError.message}` };
 
-    const { data: members } = await supabase
-      .from("memberships")
-      .select("user_id")
-      .eq("group_id", groupId);
-
-    if (members && members.length > 0) {
-      const statuses = members.map((m) => ({
-        special_event_id: event.id,
-        user_id: m.user_id,
-      }));
-      await supabase.from("special_payment_statuses").insert(statuses);
-
-      const otherMembers = members.filter((m) => m.user_id !== user.id);
-      if (otherMembers.length > 0) {
-        try {
-          const notifications = otherMembers.map((m) => ({
-            group_id: groupId,
-            target_user_id: m.user_id,
-            type: "event_created" as const,
-            message: `特別イベント「${title}」が作成されました`,
-          }));
-          await supabase.from("notifications").insert(notifications);
-          await sendPushToUsers(
-            otherMembers.map((m) => m.user_id),
-            { title: "特別イベント", body: `「${title}」が作成されました`, url: `/g/${groupId}/special/${event.id}` }
-          );
-        } catch { /* 通知失敗は無視 */ }
-      }
-    }
+    await supabase.from("special_payment_statuses").insert({
+      special_event_id: event.id,
+      user_id: user.id,
+    });
 
     redirect(`/g/${groupId}/special/${event.id}`);
   } catch (e) {
@@ -176,6 +151,109 @@ export async function removeSpecialEventRole(
     .delete()
     .eq("special_event_id", specialEventId)
     .eq("user_id", targetUserId);
+
+  if (error) return { error: "削除に失敗しました" };
+
+  revalidatePath(`/g/${groupId}/special/${specialEventId}`);
+  return {};
+}
+
+export async function addSpecialEventMember(
+  specialEventId: string,
+  targetUserId: string,
+  groupId: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  const [{ data: membership }, { data: eventRole }] = await Promise.all([
+    supabase.from("memberships").select("role").eq("group_id", groupId).eq("user_id", user.id).single(),
+    supabase.from("special_event_roles").select("id").eq("special_event_id", specialEventId).eq("user_id", user.id).maybeSingle(),
+  ]);
+
+  const isLeaderOrMod = membership?.role === "leader" || membership?.role === "moderator";
+  if (!isLeaderOrMod && !eventRole) {
+    return { error: "権限者以上またはフォーム内権限者のみメンバーを追加できます" };
+  }
+
+  const { data: targetMembership } = await supabase
+    .from("memberships")
+    .select("user_id")
+    .eq("group_id", groupId)
+    .eq("user_id", targetUserId)
+    .single();
+
+  if (!targetMembership) return { error: "対象はグループメンバーではありません" };
+
+  const { error } = await supabase
+    .from("special_payment_statuses")
+    .insert({ special_event_id: specialEventId, user_id: targetUserId });
+
+  if (error) {
+    if (error.code === "23505") return { error: "既に参加済みです" };
+    return { error: "追加に失敗しました" };
+  }
+
+  const { data: event } = await supabase
+    .from("special_events")
+    .select("title")
+    .eq("id", specialEventId)
+    .single();
+
+  if (event) {
+    try {
+      await supabase.from("notifications").insert({
+        group_id: groupId,
+        target_user_id: targetUserId,
+        type: "event_created" as const,
+        message: `特別イベント「${event.title}」に追加されました`,
+      });
+      await sendPushToUsers([targetUserId], {
+        title: "特別イベント",
+        body: `「${event.title}」に追加されました`,
+        url: `/g/${groupId}/special/${specialEventId}`,
+      });
+    } catch { /* 通知失敗は無視 */ }
+  }
+
+  revalidatePath(`/g/${groupId}/special/${specialEventId}`);
+  return {};
+}
+
+export async function removeSpecialEventMember(
+  specialEventId: string,
+  targetUserId: string,
+  groupId: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "認証エラー" };
+
+  const [{ data: membership }, { data: eventRole }] = await Promise.all([
+    supabase.from("memberships").select("role").eq("group_id", groupId).eq("user_id", user.id).single(),
+    supabase.from("special_event_roles").select("id").eq("special_event_id", specialEventId).eq("user_id", user.id).maybeSingle(),
+  ]);
+
+  const isLeaderOrMod = membership?.role === "leader" || membership?.role === "moderator";
+  if (!isLeaderOrMod && !eventRole) {
+    return { error: "権限者以上またはフォーム内権限者のみメンバーを削除できます" };
+  }
+
+  const { data: ps } = await supabase
+    .from("special_payment_statuses")
+    .select("id, status")
+    .eq("special_event_id", specialEventId)
+    .eq("user_id", targetUserId)
+    .single();
+
+  if (!ps) return { error: "対象メンバーが見つかりません" };
+  if (ps.status !== "unpaid") return { error: "未払いのメンバーのみ削除できます" };
+
+  const { error } = await supabase
+    .from("special_payment_statuses")
+    .delete()
+    .eq("id", ps.id);
 
   if (error) return { error: "削除に失敗しました" };
 

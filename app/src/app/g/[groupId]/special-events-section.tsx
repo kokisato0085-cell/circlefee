@@ -5,10 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export async function SpecialEventsSection({
   groupId,
-  isLeader,
+  isLeaderOrMod,
 }: {
   groupId: string;
-  isLeader: boolean;
+  isLeaderOrMod: boolean;
 }) {
   const supabase = await createClient();
 
@@ -22,7 +22,7 @@ export async function SpecialEventsSection({
     <div>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-semibold">特別イベント</h2>
-        {isLeader && (
+        {isLeaderOrMod && (
           <Link href={`/g/${groupId}/special/new`}>
             <Button size="sm">+ 作成</Button>
           </Link>
