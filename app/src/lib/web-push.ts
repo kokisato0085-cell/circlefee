@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 let cached: { sendNotification: Function } | null = null;
 
@@ -29,7 +29,7 @@ export async function sendPushToUser(
   const webpush = getWebPush();
   if (!webpush) return;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: subscriptions } = await supabase
     .from("push_subscriptions")
     .select("id, endpoint, keys_json")
