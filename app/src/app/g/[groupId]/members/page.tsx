@@ -13,7 +13,7 @@ export default async function MembersPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: members }, { data: groupRoles }, { data: memberRoles }] = await Promise.all([
+  const [{ data: members }, { data: groupRoles }] = await Promise.all([
     supabase
       .from("memberships")
       .select("id, user_id, role, grade, profiles(display_name)")
@@ -23,10 +23,12 @@ export default async function MembersPage({
       .select("id, name")
       .eq("group_id", groupId)
       .order("created_at"),
-    supabase
-      .from("member_roles")
-      .select("group_role_id, membership_id"),
   ]);
+
+  const grIds = (groupRoles ?? []).map((r) => r.id);
+  const { data: memberRoles } = grIds.length > 0
+    ? await supabase.from("member_roles").select("group_role_id, membership_id").in("group_role_id", grIds)
+    : { data: [] as { group_role_id: string; membership_id: string }[] };
 
   const roleMap: Record<string, string[]> = {};
   for (const mr of memberRoles ?? []) {

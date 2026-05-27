@@ -34,11 +34,15 @@ export default async function ApprovePage({
     .eq("group_id", groupId)
     .eq("month", currentMonth);
 
-  const [{ data: groupRoles }, { data: memberRoles }, { data: allMemberships }] = await Promise.all([
+  const [{ data: groupRoles }, { data: allMemberships }] = await Promise.all([
     supabase.from("group_roles").select("id, name").eq("group_id", groupId),
-    supabase.from("member_roles").select("group_role_id, membership_id"),
     supabase.from("memberships").select("id, user_id, grade").eq("group_id", groupId),
   ]);
+
+  const grIds = (groupRoles ?? []).map((r) => r.id);
+  const { data: memberRoles } = grIds.length > 0
+    ? await supabase.from("member_roles").select("group_role_id, membership_id").in("group_role_id", grIds)
+    : { data: [] as { group_role_id: string; membership_id: string }[] };
 
   const grMap = Object.fromEntries((groupRoles ?? []).map((r) => [r.id, r.name]));
   const msByUser = Object.fromEntries((allMemberships ?? []).map((m) => [m.user_id, m]));

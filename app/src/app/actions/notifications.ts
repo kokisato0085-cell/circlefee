@@ -30,8 +30,7 @@ export async function markNotificationsRead(
 
 export async function sendReminder(
   groupId: string,
-  eventId: string,
-  eventTitle: string
+  eventId: string
 ): Promise<ActionResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -48,6 +47,15 @@ export async function sendReminder(
     return { error: "権限者以上のみ催促できます" };
   }
 
+  const { data: event } = await supabase
+    .from("events")
+    .select("title")
+    .eq("id", eventId)
+    .eq("group_id", groupId)
+    .single();
+
+  if (!event) return { error: "イベントが見つかりません" };
+
   const { data: unpaidStatuses } = await supabase
     .from("payment_statuses")
     .select("user_id")
@@ -61,7 +69,7 @@ export async function sendReminder(
     group_id: groupId,
     target_user_id: uid,
     type: "reminder" as const,
-    message: `「${eventTitle}」の支払いが未完了です`,
+    message: `「${event.title}」の支払いが未完了です`,
     related_event_id: eventId,
   }));
 
@@ -70,7 +78,7 @@ export async function sendReminder(
 
   await sendPushToUsers(verifiedUserIds, {
     title: "催促通知",
-    body: `「${eventTitle}」の支払いが未完了です`,
+    body: `「${event.title}」の支払いが未完了です`,
     url: `/g/${groupId}/events/${eventId}`,
   });
 

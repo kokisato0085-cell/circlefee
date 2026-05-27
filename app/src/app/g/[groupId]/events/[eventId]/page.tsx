@@ -40,7 +40,7 @@ export default async function EventDetailPage({
 
   const isLeaderOrMod = membership.role === "leader" || membership.role === "moderator";
 
-  const [{ data: myStatus }, { data: allStatuses }, { data: pollData }, { data: groupRoles }, { data: memberRoles }, { data: memberships }] = await Promise.all([
+  const [{ data: myStatus }, { data: allStatuses }, { data: pollData }, { data: groupRoles }, { data: memberships }] = await Promise.all([
     supabase
       .from("payment_statuses")
       .select("id, status, version, claim_date, claim_place, claim_recipient, claim_message")
@@ -61,13 +61,15 @@ export default async function EventDetailPage({
       .select("id, name")
       .eq("group_id", groupId),
     supabase
-      .from("member_roles")
-      .select("group_role_id, membership_id"),
-    supabase
       .from("memberships")
       .select("id, user_id, grade")
       .eq("group_id", groupId),
   ]);
+
+  const grIds = (groupRoles ?? []).map((r) => r.id);
+  const { data: memberRoles } = grIds.length > 0
+    ? await supabase.from("member_roles").select("group_role_id, membership_id").in("group_role_id", grIds)
+    : { data: [] as { group_role_id: string; membership_id: string }[] };
 
   let pollProps: {
     id: string;
@@ -266,7 +268,6 @@ export default async function EventDetailPage({
           <ReminderButton
             groupId={groupId}
             eventId={eventId}
-            eventTitle={event.title}
             unpaidUserIds={memberStatuses.filter((s) => s.status === "unpaid").map((s) => s.userId)}
           />
         )}

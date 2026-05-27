@@ -144,6 +144,13 @@ export async function claimPayment(
   if (fetchError || !ps) return { error: "支払いステータスが見つかりません" };
   if (ps.status !== "unpaid") return { error: "申告済みまたは支払い済みです" };
 
+  if (memo) {
+    if (!memo.claimDate || !memo.claimPlace || !memo.claimRecipient) return { error: "申告メモの必須項目が不足しています" };
+    if (memo.claimPlace.length > 200) return { error: "場所は200文字以内です" };
+    if (memo.claimRecipient.length > 100) return { error: "受取人は100文字以内です" };
+    if (memo.claimMessage && memo.claimMessage.length > 500) return { error: "メッセージは500文字以内です" };
+  }
+
   const updateData: Record<string, unknown> = {
     status: "claimed",
     version: ps.version + 1,
@@ -222,11 +229,14 @@ export async function approvePayment(
 
   const { data: ps, error: fetchError } = await supabase
     .from("payment_statuses")
-    .select("id, status, version, event_id")
+    .select("id, status, version, event_id, user_id, events(title, group_id)")
     .eq("id", paymentStatusId)
     .single();
 
   if (fetchError || !ps) return { error: "ステータスが見つかりません" };
+
+  const psEvent = ps.events as unknown as { title: string; group_id: string };
+  if (psEvent.group_id !== groupId) return { error: "不正なリクエストです" };
 
   const newStatus = action === "approve" ? "paid" : "unpaid";
 
@@ -236,12 +246,6 @@ export async function approvePayment(
   if (action === "reject" && ps.status !== "claimed") {
     return { error: "申告中のステータスのみ差し戻しできます" };
   }
-
-  const { data: psDetail } = await supabase
-    .from("payment_statuses")
-    .select("user_id, event_id, events(title)")
-    .eq("id", paymentStatusId)
-    .single();
 
   const { data: updated, error: updateError } = await supabase
     .from("payment_statuses")
@@ -254,26 +258,23 @@ export async function approvePayment(
   if (updateError) return { error: "更新に失敗しました。再度お試しください" };
   if (!updated) return { error: "データが更新されています。ページを再読み込みしてください" };
 
-  if (psDetail) {
-    const ev = psDetail.events as unknown as { title: string };
-    const notifType = action === "approve" ? "payment_approved" : "payment_rejected";
-    const msg = action === "approve"
-      ? `「${ev.title}」の支払いが承認されました`
-      : `「${ev.title}」の支払い申告が差し戻されました`;
+  const notifType = action === "approve" ? "payment_approved" : "payment_rejected";
+  const msg = action === "approve"
+    ? `「${psEvent.title}」の支払いが承認されました`
+    : `「${psEvent.title}」の支払い申告が差し戻されました`;
 
-    await supabase.from("notifications").insert({
-      group_id: groupId,
-      target_user_id: psDetail.user_id,
-      type: notifType,
-      message: msg,
-      related_event_id: psDetail.event_id,
-    });
-    await sendPushToUser(psDetail.user_id, {
-      title: action === "approve" ? "支払い承認" : "支払い差戻し",
-      body: msg,
-      url: `/g/${groupId}/events/${psDetail.event_id}`,
-    });
-  }
+  await supabase.from("notifications").insert({
+    group_id: groupId,
+    target_user_id: ps.user_id,
+    type: notifType,
+    message: msg,
+    related_event_id: ps.event_id,
+  });
+  await sendPushToUser(ps.user_id, {
+    title: action === "approve" ? "支払い承認" : "支払い差戻し",
+    body: msg,
+    url: `/g/${groupId}/events/${ps.event_id}`,
+  });
 
   revalidatePath(`/g/${groupId}`);
   return {};
@@ -300,6 +301,16 @@ export async function updateSubStatus(
   }
 
   if (subStatus.length > 50) return { error: "サブステータスは50文字以内です" };
+
+  const { data: ps } = await supabase
+    .from("payment_statuses")
+    .select("id, events!inner(group_id)")
+    .eq("id", paymentStatusId)
+    .single();
+
+  if (!ps) return { error: "ステータスが見つかりません" };
+  const psEv = ps.events as unknown as { group_id: string };
+  if (psEv.group_id !== groupId) return { error: "不正なリクエストです" };
 
   const { error } = await supabase
     .from("payment_statuses")
@@ -412,11 +423,13 @@ export async function adjustPaymentAmount(
 
   const { data: ps } = await supabase
     .from("payment_statuses")
-    .select("user_id")
+    .select("user_id, events!inner(group_id)")
     .eq("id", paymentStatusId)
     .single();
 
   if (!ps) return { error: "ステータスが見つかりません" };
+  const psEv = ps.events as unknown as { group_id: string };
+  if (psEv.group_id !== groupId) return { error: "不正なリクエストです" };
 
   const { data: eligible } = await supabase
     .rpc("check_consecutive_unpaid", {
