@@ -31,6 +31,7 @@ export const metadata: Metadata = {
     title: "サークル費用管理",
   },
   icons: {
+    icon: "/icon-192.png",
     apple: "/apple-touch-icon.png",
   },
 };
