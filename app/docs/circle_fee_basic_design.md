@@ -1,7 +1,7 @@
 # サークル費用管理アプリ 基本設計書
 
 最終更新: 2026-05-27
-ステータス: 大方針確定（A〜R） / 中方針全確定（中1〜中8） / 小方針全確定（Phase 1〜5）
+ステータス: 大方針確定（A〜S） / 中方針全確定（中1〜中8） / 小方針全確定（Phase 1〜5）
 
 ---
 
@@ -185,7 +185,14 @@ Realtimeで配信するデータにメールアドレス等の個人情報を含
 - フォーム内権限はそのイベント限り（グループ全体の権限には影響しない）
 - 月次リセットとは独立、イベント単位で完結
 
-### 4.9 ユーザー認証・グループ参加制御（大方針M）
+### 4.9 メンバーバッジ（大方針S）
+
+- 部長がメンバーに学年バッジ（1〜4年）を設定・解除
+- 部長がグループごとに係バッジ（自由名称、1〜20文字）を作成・削除
+- 部長が係バッジをメンバーに付与・解除（1メンバーに複数可）
+- メンバー一覧・イベント詳細・支払い管理・承認画面でバッジを表示
+
+### 4.10 ユーザー認証・グループ参加制御（大方針M）
 
 **アカウント登録:**
 - メールアドレス等で個人が新規登録（1人1アカウント）
@@ -216,7 +223,7 @@ Realtimeで配信するデータにメールアドレス等の個人情報を含
 |-----------|------|-----------|
 | profiles | ユーザー情報 | id(=Auth UID), display_name |
 | groups | グループ | id, name, password_hash, created_by |
-| memberships | 所属・ロール | group_id, user_id, role, version |
+| memberships | 所属・ロール | group_id, user_id, role, version, grade |
 | invite_links | 招待リンク | group_id, token, expires_at |
 | join_requests | 参加リクエスト | group_id, user_id, status |
 | events | 集金イベント（月次） | group_id, title, amount, due_date, month |
@@ -238,6 +245,7 @@ groups   ──1:N── special_events ──1:N── special_payment_statuses
                                   └─1:N── special_event_roles
 groups   ──1:N── invite_links
 groups   ──1:N── join_requests
+groups   ──1:N── group_roles ──1:N── member_roles ──N:1── memberships
 profiles ──1:N── notifications
 profiles ──1:N── push_subscriptions
 ```
