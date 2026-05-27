@@ -48,6 +48,12 @@ export function PushToggle() {
         }
         setSubscribed(false);
       } else {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          setError("通知が拒否されています。端末の設定を確認してください");
+          return;
+        }
+
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(
