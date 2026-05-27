@@ -51,7 +51,7 @@ export default async function GroupHomePage({
         </Suspense>
 
         <Suspense fallback={<SpecialEventsSkeleton />}>
-          <SpecialEventsSection groupId={groupId} isLeader={isLeader} />
+          <SpecialEventsSection groupId={groupId} isLeaderOrMod={isLeaderOrMod} />
         </Suspense>
 
         <Link href={`/g/${groupId}/dashboard`}>
