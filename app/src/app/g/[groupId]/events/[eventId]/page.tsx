@@ -40,7 +40,7 @@ export default async function EventDetailPage({
 
   const isLeaderOrMod = membership.role === "leader" || membership.role === "moderator";
 
-  const [{ data: myStatus }, { data: allStatuses }, { data: pollData }] = await Promise.all([
+  const [{ data: myStatus }, { data: allStatuses }, { data: pollData }, { data: groupRoles }, { data: memberRoles }, { data: memberships }] = await Promise.all([
     supabase
       .from("payment_statuses")
       .select("id, status, version, claim_date, claim_place, claim_recipient, claim_message")
@@ -56,6 +56,17 @@ export default async function EventDetailPage({
       .select("id, question, event_poll_options(id, label, sort_order)")
       .eq("event_id", eventId)
       .maybeSingle(),
+    supabase
+      .from("group_roles")
+      .select("id, name")
+      .eq("group_id", groupId),
+    supabase
+      .from("member_roles")
+      .select("group_role_id, membership_id"),
+    supabase
+      .from("memberships")
+      .select("id, user_id, grade")
+      .eq("group_id", groupId),
   ]);
 
   let pollProps: {
@@ -113,20 +124,34 @@ export default async function EventDetailPage({
 
   const myStatusInfo = myStatus ? statusLabels[myStatus.status] : null;
 
-  const memberStatuses = (allStatuses ?? []).map((s) => ({
-    id: s.id,
-    userId: s.user_id,
-    displayName: (s.profiles as unknown as { display_name: string }).display_name,
-    status: s.status as string,
-    subStatus: s.sub_status as string | null,
-    adjustedAmount: s.adjusted_amount as number | null,
-    version: s.version,
-    voteLabel: voteByUserId[s.user_id] ?? null,
-    claimDate: s.claim_date as string | null,
-    claimPlace: s.claim_place as string | null,
-    claimRecipient: s.claim_recipient as string | null,
-    claimMessage: s.claim_message as string | null,
-  }));
+  const grMap = Object.fromEntries((groupRoles ?? []).map((r) => [r.id, r.name]));
+  const membershipByUser = Object.fromEntries((memberships ?? []).map((m) => [m.user_id, m]));
+  const memberRoleMap: Record<string, string[]> = {};
+  for (const mr of memberRoles ?? []) {
+    if (!memberRoleMap[mr.membership_id]) memberRoleMap[mr.membership_id] = [];
+    memberRoleMap[mr.membership_id].push(mr.group_role_id);
+  }
+
+  const memberStatuses = (allStatuses ?? []).map((s) => {
+    const ms = membershipByUser[s.user_id];
+    const roleNames = (memberRoleMap[ms?.id as string] ?? []).map((rid) => grMap[rid]).filter(Boolean);
+    return {
+      id: s.id,
+      userId: s.user_id,
+      displayName: (s.profiles as unknown as { display_name: string }).display_name,
+      status: s.status as string,
+      subStatus: s.sub_status as string | null,
+      adjustedAmount: s.adjusted_amount as number | null,
+      version: s.version,
+      voteLabel: voteByUserId[s.user_id] ?? null,
+      claimDate: s.claim_date as string | null,
+      claimPlace: s.claim_place as string | null,
+      claimRecipient: s.claim_recipient as string | null,
+      claimMessage: s.claim_message as string | null,
+      grade: (ms?.grade as number | null) ?? null,
+      roleNames,
+    };
+  });
 
   return (
     <div className="flex min-h-full flex-col px-4 py-6">

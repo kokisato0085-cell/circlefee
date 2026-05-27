@@ -19,7 +19,11 @@ type MemberStatus = {
   claimPlace: string | null;
   claimRecipient: string | null;
   claimMessage: string | null;
+  grade: number | null;
+  roleNames: string[];
 };
+
+const gradeLabels: Record<number, string> = { 1: "1年", 2: "2年", 3: "3年", 4: "4年" };
 
 const statusLabels: Record<string, { text: string; color: string }> = {
   unpaid: { text: "未払い", color: "text-red-600 bg-red-50" },
@@ -115,8 +119,14 @@ function MemberStatusCard({
         {error && <p className="text-xs text-red-600">{error}</p>}
         <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <p className="font-medium">{status.displayName}</p>
+              {status.grade && (
+                <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">{gradeLabels[status.grade]}</span>
+              )}
+              {status.roleNames.map((name) => (
+                <span key={name} className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">{name}</span>
+              ))}
               {status.voteLabel && (
                 <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
                   {status.voteLabel}

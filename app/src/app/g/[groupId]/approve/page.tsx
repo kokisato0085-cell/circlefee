@@ -34,6 +34,20 @@ export default async function ApprovePage({
     .eq("group_id", groupId)
     .eq("month", currentMonth);
 
+  const [{ data: groupRoles }, { data: memberRoles }, { data: allMemberships }] = await Promise.all([
+    supabase.from("group_roles").select("id, name").eq("group_id", groupId),
+    supabase.from("member_roles").select("group_role_id, membership_id"),
+    supabase.from("memberships").select("id, user_id, grade").eq("group_id", groupId),
+  ]);
+
+  const grMap = Object.fromEntries((groupRoles ?? []).map((r) => [r.id, r.name]));
+  const msByUser = Object.fromEntries((allMemberships ?? []).map((m) => [m.user_id, m]));
+  const mrMap: Record<string, string[]> = {};
+  for (const mr of memberRoles ?? []) {
+    if (!mrMap[mr.membership_id]) mrMap[mr.membership_id] = [];
+    mrMap[mr.membership_id].push(mr.group_role_id);
+  }
+
   let pendingApprovals: {
     paymentStatusId: string;
     eventTitle: string;
@@ -44,6 +58,8 @@ export default async function ApprovePage({
     claimPlace: string | null;
     claimRecipient: string | null;
     claimMessage: string | null;
+    grade: number | null;
+    roleNames: string[];
   }[] = [];
 
   if (events && events.length > 0) {
@@ -58,6 +74,8 @@ export default async function ApprovePage({
 
     pendingApprovals = (claimed ?? []).map((c) => {
       const ev = eventMap[c.event_id];
+      const ms = msByUser[c.user_id];
+      const roleNames = (mrMap[ms?.id as string] ?? []).map((rid) => grMap[rid]).filter(Boolean);
       return {
         paymentStatusId: c.id,
         eventTitle: ev?.title ?? "",
@@ -68,6 +86,8 @@ export default async function ApprovePage({
         claimPlace: c.claim_place,
         claimRecipient: c.claim_recipient,
         claimMessage: c.claim_message,
+        grade: (ms?.grade as number | null) ?? null,
+        roleNames,
       };
     });
   }

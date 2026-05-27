@@ -15,7 +15,11 @@ type Approval = {
   claimPlace: string | null;
   claimRecipient: string | null;
   claimMessage: string | null;
+  grade: number | null;
+  roleNames: string[];
 };
+
+const gradeLabels: Record<number, string> = { 1: "1年", 2: "2年", 3: "3年", 4: "4年" };
 
 export function ApproveList({
   approvals,
@@ -62,7 +66,15 @@ export function ApproveList({
               <CardContent className="py-4">
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <p className="font-medium">{a.displayName}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium">{a.displayName}</p>
+                      {a.grade && (
+                        <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">{gradeLabels[a.grade]}</span>
+                      )}
+                      {a.roleNames.map((name) => (
+                        <span key={name} className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">{name}</span>
+                      ))}
+                    </div>
                     <p className="text-sm text-gray-500">{a.eventTitle}</p>
                   </div>
                   <span className="font-semibold">{a.amount.toLocaleString()}円</span>
