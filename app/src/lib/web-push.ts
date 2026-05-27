@@ -1,26 +1,33 @@
-import webpush from "web-push";
 import { createClient } from "@/lib/supabase/server";
 
-let initialized = false;
+let cached: { sendNotification: Function } | null = null;
 
-function ensureInitialized() {
-  if (initialized) return true;
+function getWebPush() {
+  if (cached) return cached;
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   if (!publicKey || !privateKey) {
     console.error("[web-push] VAPID keys not configured");
-    return false;
+    return null;
   }
-  webpush.setVapidDetails("mailto:kokisato0085@gmail.com", publicKey, privateKey);
-  initialized = true;
-  return true;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const webpush = require("web-push");
+    webpush.setVapidDetails("mailto:kokisato0085@gmail.com", publicKey, privateKey);
+    cached = webpush;
+    return webpush;
+  } catch (err) {
+    console.error("[web-push] Failed to load module:", err);
+    return null;
+  }
 }
 
 export async function sendPushToUser(
   userId: string,
   payload: { title: string; body: string; url?: string }
 ) {
-  if (!ensureInitialized()) return;
+  const webpush = getWebPush();
+  if (!webpush) return;
 
   const supabase = await createClient();
   const { data: subscriptions } = await supabase
