@@ -140,7 +140,7 @@ export default async function EventDetailPage({
     return {
       id: s.id,
       userId: s.user_id,
-      displayName: (s.profiles as unknown as { display_name: string }).display_name,
+      displayName: (s.profiles as unknown as { display_name: string } | null)?.display_name ?? "退会済みメンバー",
       status: s.status as string,
       subStatus: s.sub_status as string | null,
       adjustedAmount: s.adjusted_amount as number | null,

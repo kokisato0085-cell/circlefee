@@ -52,7 +52,7 @@ export default async function AdminMembersPage({
     .map((m) => ({
       membershipId: m.id as string,
       userId: m.user_id,
-      displayName: (m.profiles as unknown as { display_name: string }).display_name,
+      displayName: (m.profiles as unknown as { display_name: string } | null)?.display_name ?? "不明",
       role: m.role as string,
       version: m.version as number,
       grade: m.grade as number | null,
