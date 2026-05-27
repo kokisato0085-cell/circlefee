@@ -83,7 +83,7 @@ export default async function ApprovePage({
       return {
         paymentStatusId: c.id,
         eventTitle: ev?.title ?? "",
-        displayName: (c.profiles as unknown as { display_name: string }).display_name,
+        displayName: (c.profiles as unknown as { display_name: string } | null)?.display_name ?? "退会済みメンバー",
         amount: c.adjusted_amount ?? ev?.amount ?? 0,
         subStatus: c.sub_status,
         claimDate: c.claim_date,

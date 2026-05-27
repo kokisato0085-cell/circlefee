@@ -53,7 +53,7 @@ export default async function SpecialEventDetailPage({
   const memberStatuses = (allStatuses ?? []).map((s) => ({
     id: s.id,
     userId: s.user_id,
-    displayName: (s.profiles as unknown as { display_name: string }).display_name,
+    displayName: (s.profiles as unknown as { display_name: string } | null)?.display_name ?? "退会済みメンバー",
     status: s.status as string,
     version: s.version,
   }));
@@ -68,21 +68,21 @@ export default async function SpecialEventDetailPage({
     .filter((m) => !participantUserIds.has(m.user_id))
     .map((m) => ({
       userId: m.user_id,
-      displayName: (m.profiles as unknown as { display_name: string }).display_name,
+      displayName: (m.profiles as unknown as { display_name: string } | null)?.display_name ?? "不明",
     }));
 
   const memberOptions = (members ?? [])
     .filter((m) => !eventRoleUserIds.has(m.user_id))
     .map((m) => ({
       userId: m.user_id,
-      displayName: (m.profiles as unknown as { display_name: string }).display_name,
+      displayName: (m.profiles as unknown as { display_name: string } | null)?.display_name ?? "不明",
     }));
 
   const currentRoles = (eventRoles ?? []).map((r) => {
     const status = (allStatuses ?? []).find((s) => s.user_id === r.user_id);
     return {
       userId: r.user_id,
-      displayName: status ? (status.profiles as unknown as { display_name: string }).display_name : "不明",
+      displayName: status ? (status.profiles as unknown as { display_name: string } | null)?.display_name ?? "不明" : "不明",
     };
   });
 
