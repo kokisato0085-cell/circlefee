@@ -34,7 +34,7 @@
 - **アプリ内通知** — 通知履歴を一覧表示、未読バッジ付き
 
 ### その他
-- **特別イベント** — 合宿費など月次会費とは別枠の集金フォーム
+- **特別イベント** — 合宿費など月次会費とは別枠の集金フォーム（参加メンバーを個別選択）
 - **イベント投票** — 日程調整などの投票機能をイベントに紐付け
 - **PWA 対応** — Android / iOS のホーム画面に追加してネイティブアプリのように使用可能
 - **アカウント管理** — 表示名変更・パスワード変更・アカウント削除（データ匿名化）
@@ -105,11 +105,12 @@ cp .env.local.example .env.local
 #   NEXT_PUBLIC_SUPABASE_URL      — Supabase プロジェクトの URL
 #   NEXT_PUBLIC_SUPABASE_ANON_KEY — Supabase の anon key
 #   NEXT_PUBLIC_SITE_URL          — デプロイ先 URL（ローカルなら http://localhost:3000）
+#   SUPABASE_SERVICE_ROLE_KEY     — Supabase の service_role key（Push通知送信用）
 #   NEXT_PUBLIC_VAPID_PUBLIC_KEY  — Web Push 用公開鍵
 #   VAPID_PRIVATE_KEY             — Web Push 用秘密鍵
 
 # 4. Supabase DB セットアップ
-#    SQL Editor で supabase/migrations/ 配下のファイルを 001〜013 の順に実行
+#    SQL Editor で supabase/migrations/ 配下のファイルを 001〜014 の順に実行
 
 # 5. 開発サーバー起動
 npm run dev
@@ -136,7 +137,7 @@ npx web-push generate-vapid-keys
 ## デプロイ
 
 1. Vercel にプロジェクトをインポート（**Root Directory: `app`**）
-2. 環境変数を設定（上記 5 つ）
+2. 環境変数を設定（上記 6 つ）
 3. Supabase の URL Configuration と Redirect URLs をデプロイ先 URL に更新
 4. main ブランチへのプッシュで自動デプロイ
 
@@ -166,7 +167,7 @@ app/
 │   ├── components/ui/         # shadcn/ui コンポーネント
 │   └── lib/                   # Supabase クライアント, バリデーション, Web Push
 ├── supabase/
-│   └── migrations/            # DB マイグレーション SQL（001〜013）
+│   └── migrations/            # DB マイグレーション SQL（001〜014）
 ├── public/                    # PWA アセット（manifest, icons, sw.js）
 └── docs/                      # 設計書（方針書, 基本設計書）
 ```
@@ -190,6 +191,7 @@ app/
 | 011 | payment_claim_memo | 支払い申告メモ（日付・場所・受取人） |
 | 012 | payment_claim_message | 支払い申告メッセージ |
 | 013 | member_badges | 学年バッジ・係バッジ（group_roles, member_roles） |
+| 014 | special_event_member_management | 特別イベントメンバー選択制・DELETE/INSERT ポリシー追加 |
 
 ---
 
