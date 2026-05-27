@@ -7,12 +7,10 @@ import { Button } from "@/components/ui/button";
 export function ReminderButton({
   groupId,
   eventId,
-  eventTitle,
   unpaidUserIds,
 }: {
   groupId: string;
   eventId: string;
-  eventTitle: string;
   unpaidUserIds: string[];
 }) {
   const [sent, setSent] = useState(false);
@@ -20,7 +18,7 @@ export function ReminderButton({
 
   async function handleSend() {
     setError(null);
-    const result = await sendReminder(groupId, eventId, eventTitle);
+    const result = await sendReminder(groupId, eventId);
     if (result.error) {
       setError(result.error);
       return;
