@@ -60,6 +60,12 @@ export default async function GroupHomePage({
           </Button>
         </Link>
 
+        <Link href={`/g/${groupId}/accounting`}>
+          <Button variant="outline" className="w-full">
+            会計帳簿
+          </Button>
+        </Link>
+
         {isLeaderOrMod && (
           <Link href={`/g/${groupId}/approve`}>
             <Button variant="outline" className="w-full">

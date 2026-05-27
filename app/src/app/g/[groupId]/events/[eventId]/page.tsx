@@ -10,6 +10,7 @@ import { DeleteEventButton } from "./delete-event-button";
 import { ReminderButton } from "./reminder-button";
 import { PollSection } from "./poll-section";
 import { PollManage } from "./poll-manage";
+import { ConfirmIncomeButton } from "./confirm-income-button";
 
 export default async function EventDetailPage({
   params,
@@ -261,6 +262,16 @@ export default async function EventDetailPage({
             statuses={memberStatuses}
             eventAmount={event.amount}
             groupId={groupId}
+          />
+        )}
+
+        {isLeaderOrMod && (
+          <ConfirmIncomeButton
+            groupId={groupId}
+            eventId={eventId}
+            eventTitle={event.title}
+            paidCount={paid}
+            eventAmount={event.amount}
           />
         )}
 
