@@ -125,6 +125,39 @@ export function PushToggle() {
         <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono space-y-0.5">
           <p className="font-bold">Debug:</p>
           {debug.map((d, i) => <p key={i}>{d}</p>)}
+          <div className="mt-1 flex gap-2">
+            <button
+              className="px-2 py-1 bg-blue-500 text-white rounded text-xs"
+              onClick={async () => {
+                try {
+                  const reg = await navigator.serviceWorker.ready;
+                  await reg.showNotification("テスト通知", {
+                    body: "ローカル通知テスト（Push経由なし）",
+                    icon: "/icon-192.png",
+                  });
+                  setDebug((prev) => [...prev, "showNotification: OK"]);
+                } catch (e) {
+                  setDebug((prev) => [...prev, `showNotification: ERROR ${e}`]);
+                }
+              }}
+            >
+              Test Local
+            </button>
+            <button
+              className="px-2 py-1 bg-green-500 text-white rounded text-xs"
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/test-push", { method: "POST" });
+                  const data = await res.json();
+                  setDebug((prev) => [...prev, `test-push: ${JSON.stringify(data)}`]);
+                } catch (e) {
+                  setDebug((prev) => [...prev, `test-push: ERROR ${e}`]);
+                }
+              }}
+            >
+              Test Server Push
+            </button>
+          </div>
         </div>
       )}
     </div>
