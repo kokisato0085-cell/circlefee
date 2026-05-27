@@ -45,7 +45,7 @@ export function MemberManageList({
     if (!newRoleName.trim()) return;
     const result = await createGroupRole(groupId, newRoleName);
     if (result.error) { setRoleError(result.error); return; }
-    setGroupRoles((prev) => [...prev, { id: crypto.randomUUID(), name: newRoleName.trim() }]);
+    if (result.id) setGroupRoles((prev) => [...prev, { id: result.id!, name: newRoleName.trim() }]);
     setNewRoleName("");
   }
 

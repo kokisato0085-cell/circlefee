@@ -183,7 +183,7 @@ export async function setGrade(
 export async function createGroupRole(
   groupId: string,
   name: string
-): Promise<ActionResult> {
+): Promise<ActionResult & { id?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "認証エラー" };
@@ -194,9 +194,11 @@ export async function createGroupRole(
   const trimmed = name.trim();
   if (trimmed.length < 1 || trimmed.length > 20) return { error: "係名は1〜20文字で入力してください" };
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("group_roles")
-    .insert({ group_id: groupId, name: trimmed });
+    .insert({ group_id: groupId, name: trimmed })
+    .select("id")
+    .single();
 
   if (error) {
     if (error.code === "23505") return { error: "同じ名前の係が既に存在します" };
@@ -204,7 +206,7 @@ export async function createGroupRole(
   }
 
   revalidatePath(`/g/${groupId}`);
-  return {};
+  return { id: data.id };
 }
 
 export async function deleteGroupRole(
