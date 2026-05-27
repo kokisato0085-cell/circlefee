@@ -18,17 +18,32 @@ export function PushToggle() {
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debug, setDebug] = useState<string[]>([]);
 
   useEffect(() => {
+    const info: string[] = [];
+    info.push(`Notification in window: ${"Notification" in window}`);
+    info.push(`SW in navigator: ${"serviceWorker" in navigator}`);
+    info.push(`PushManager in window: ${"PushManager" in window}`);
+    if ("Notification" in window) {
+      info.push(`Notification.permission: ${Notification.permission}`);
+    }
+    info.push(`standalone: ${(navigator as unknown as { standalone?: boolean }).standalone ?? window.matchMedia("(display-mode: standalone)").matches}`);
+
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      info.push("NOT SUPPORTED");
+      setDebug(info);
       setLoading(false);
       return;
     }
     setSupported(true);
 
     navigator.serviceWorker.register("/sw.js").then(async (reg) => {
+      info.push(`SW state: ${reg.active?.state ?? "no active"}`);
       const sub = await reg.pushManager.getSubscription();
+      info.push(`subscription: ${sub ? "exists" : "none"}`);
       setSubscribed(!!sub);
+      setDebug(info);
       setLoading(false);
     });
   }, []);
@@ -105,6 +120,12 @@ export function PushToggle() {
       </div>
       {subscribed && (
         <p className="text-xs text-green-600">プッシュ通知は有効です</p>
+      )}
+      {debug.length > 0 && (
+        <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono space-y-0.5">
+          <p className="font-bold">Debug:</p>
+          {debug.map((d, i) => <p key={i}>{d}</p>)}
+        </div>
       )}
     </div>
   );
