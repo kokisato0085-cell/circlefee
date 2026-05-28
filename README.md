@@ -22,6 +22,7 @@
 - **支払い申告メモ** — 申告時に日付・場所・受取人・メッセージを記録
 - **個別金額調整** — 2 ヶ月連続未払い者に対して金額を増減
 - **会計ダッシュボード** — 月別の集金進捗・金額を可視化、CSV エクスポート対応
+- **会計帳簿** — 入出金記録・残高管理・カテゴリ別支出円グラフ・月別収支レポート
 
 ### グループ・メンバー管理
 - **3 階層ロール制** — 部長 > 権限者 > 一般員の権限管理
@@ -192,6 +193,7 @@ app/
 | 012 | payment_claim_message | 支払い申告メッセージ |
 | 013 | member_badges | 学年バッジ・係バッジ（group_roles, member_roles） |
 | 014 | special_event_member_management | 特別イベントメンバー選択制・DELETE/INSERT ポリシー追加 |
+| 015 | accounting_ledger | account_entries, expense_categories テーブル（会計帳簿） |
 
 ---
 
