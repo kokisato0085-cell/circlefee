@@ -219,6 +219,30 @@ npx web-push generate-vapid-keys
 
 ---
 
+## 利用ガイド
+
+ロール別の操作マニュアル（PDF / Markdown）を `app/docs/manuals/` に用意しています。
+
+| 対象 | PDF | Markdown |
+|------|-----|----------|
+| 部長 | [CircleFee_利用ガイド_部長向け.pdf](app/docs/manuals/CircleFee_利用ガイド_部長向け.pdf) | [guide_leader.md](app/docs/manuals/guide_leader.md) |
+| 権限者 | [CircleFee_利用ガイド_権限者向け.pdf](app/docs/manuals/CircleFee_利用ガイド_権限者向け.pdf) | [guide_moderator.md](app/docs/manuals/guide_moderator.md) |
+| 一般会員 | [CircleFee_利用ガイド_一般会員向け.pdf](app/docs/manuals/CircleFee_利用ガイド_一般会員向け.pdf) | [guide_member.md](app/docs/manuals/guide_member.md) |
+
+### 部長向け（全機能）
+
+グループ作成・メンバー招待・権限者管理・部長委譲・バッジ管理・イベント作成/編集/削除・支払い承認・催促通知・特別イベント（作成/削除/メンバー管理/フォーム内権限者付与）・会計帳簿（入出金/カテゴリ/レポート）・入金確定・ダッシュボード・通知・PWA設定・アカウント管理
+
+### 権限者向け
+
+イベント作成/編集/削除・支払い承認・催促通知・金額調整・特別イベント（作成/メンバー管理）・会計帳簿（入出金/カテゴリ/レポート）・入金確定・投票作成・ダッシュボード・通知・支払い申告
+
+### 一般会員向け
+
+イベント閲覧・支払い申告（日付/場所/受取人/メッセージ記録）・ステータス確認・投票・会計帳簿（残高サマリーのみ）・集金状況確認・メンバー一覧・通知・PWA設定・アカウント設定
+
+---
+
 ## ライセンス
 
 MIT
