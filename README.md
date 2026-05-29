@@ -7,6 +7,97 @@
 
 ---
 
+## 技術スタック
+
+| カテゴリ | 技術 |
+|----------|------|
+| フレームワーク | Next.js 15 (App Router), React 19, TypeScript |
+| スタイリング | Tailwind CSS, shadcn/ui |
+| データベース | Supabase (PostgreSQL + RLS + Realtime) |
+| 認証 | Supabase Auth (メール + パスワード) |
+| メール送信 | Resend (カスタム SMTP) |
+| プッシュ通知 | Web Push API (VAPID) |
+| ホスティング | Vercel (フロント) + Supabase (バックエンド) |
+| バリデーション | Zod |
+
+---
+
+## ソースコード案内
+
+コードは [`app/src/`](app/src/) 配下にあります。Next.js App Router の規約に沿った構成です。
+
+```
+app/src/
+├── app/
+│   ├── actions/           # ★ Server Actions（ビジネスロジックの中心）
+│   │   ├── auth.ts           # ログイン・サインアップ・パスワードリセット
+│   │   ├── events.ts         # イベント作成・支払い承認・催促・金額調整
+│   │   ├── groups.ts         # グループ作成・招待リンク・参加申請
+│   │   ├── members.ts        # メンバー管理・ロール変更・バッジ付与
+│   │   ├── notifications.ts  # アプリ内通知の取得・既読処理
+│   │   ├── push.ts           # Web Push 購読・送信
+│   │   ├── accounting.ts     # 会計帳簿（入出金・カテゴリ・レポート）
+│   │   ├── special-events.ts # 特別イベント（メンバー選択制の集金）
+│   │   └── polls.ts          # イベント投票の作成・投票・集計
+│   │
+│   ├── g/[groupId]/       # ★ グループ内の各画面（UI + ロジック）
+│   │   ├── events/           # イベント詳細・作成・編集
+│   │   ├── approve/          # 支払い承認画面
+│   │   ├── dashboard/        # 会計ダッシュボード（月別集計・CSV出力）
+│   │   ├── accounting/       # 会計帳簿（入出金記録・円グラフ・月別レポート）
+│   │   ├── admin/            # 管理画面（メンバー管理・部長委譲）
+│   │   ├── special/          # 特別イベント
+│   │   ├── members/          # メンバー一覧
+│   │   ├── notifications/    # 通知一覧
+│   │   ├── settings/         # グループ設定
+│   │   └── realtime-provider.tsx  # Supabase Realtime のリアルタイム同期
+│   │
+│   ├── (auth)/            # 認証ページ（login, signup, reset-password）
+│   ├── groups/            # グループ選択・作成
+│   ├── invite/            # 招待リンク参加
+│   └── settings/          # アカウント設定（表示名・パスワード・削除）
+│
+├── lib/                   # ★ 共通ライブラリ
+│   ├── supabase/             # Supabase クライアント（server / client / admin / middleware）
+│   ├── validations.ts        # Zod スキーマ（全入力バリデーション）
+│   └── web-push.ts           # Web Push 送信ユーティリティ
+│
+└── components/ui/         # shadcn/ui コンポーネント
+```
+
+```
+app/supabase/
+└── migrations/            # ★ DB スキーマ定義（SQL マイグレーション 001〜015）
+```
+
+> **★ マーク**がコードレビュー時に特に見ていただきたい箇所です。
+
+---
+
+## アーキテクチャ
+
+```
+[ブラウザ / PWA]
+    ├── Server Components (RSC) でページ描画
+    ├── Server Actions で DB 操作（認証 + RLS で保護）
+    ├── Supabase Realtime で支払い状況をリアルタイム反映
+    └── Service Worker で Web Push 受信
+
+[Supabase]
+    ├── PostgreSQL + Row Level Security（全テーブル）
+    ├── Auth（メール認証 + セッション管理）
+    └── Realtime（WebSocket 配信）
+```
+
+### セキュリティ設計
+- 全テーブルに RLS ポリシー適用（グループ単位のデータ分離）
+- Server Actions でロール検証 + 楽観的ロック（version カラム）
+- メールアドレスは auth 経由のみ取得可能（DB に保存しない）
+- IDOR 防止のためリソースのグループ所属を検証
+- 入力バリデーション: クライアント (UX) + サーバー (Zod) + DB (CHECK 制約) の多層防御
+
+---
+
 ## 背景・課題
 
 サークル活動で毎月の会費を集めるとき、LINE で個別連絡し Excel で手動管理するのは手間がかかります。  
@@ -42,46 +133,30 @@
 
 ---
 
-## 技術スタック
+## DB マイグレーション一覧
 
-| カテゴリ | 技術 |
-|----------|------|
-| フレームワーク | Next.js 15 (App Router), React 19, TypeScript |
-| スタイリング | Tailwind CSS, shadcn/ui |
-| データベース | Supabase (PostgreSQL + RLS + Realtime) |
-| 認証 | Supabase Auth (メール + パスワード) |
-| メール送信 | Resend (カスタム SMTP) |
-| プッシュ通知 | Web Push API (VAPID) |
-| ホスティング | Vercel (フロント) + Supabase (バックエンド) |
-| バリデーション | Zod |
-
----
-
-## アーキテクチャ
-
-```
-[ブラウザ / PWA]
-    ├── Server Components (RSC) でページ描画
-    ├── Server Actions で DB 操作（認証 + RLS で保護）
-    ├── Supabase Realtime で支払い状況をリアルタイム反映
-    └── Service Worker で Web Push 受信
-
-[Supabase]
-    ├── PostgreSQL + Row Level Security（全テーブル）
-    ├── Auth（メール認証 + セッション管理）
-    └── Realtime（WebSocket 配信）
-```
-
-### セキュリティ設計
-- 全テーブルに RLS ポリシー適用（グループ単位のデータ分離）
-- Server Actions でロール検証 + 楽観的ロック（version カラム）
-- メールアドレスは auth 経由のみ取得可能（DB に保存しない）
-- IDOR 防止のためリソースのグループ所属を検証
-- 入力バリデーション: クライアント (UX) + サーバー (Zod) + DB (CHECK 制約) の多層防御
+| # | ファイル | 内容 |
+|---|---------|------|
+| 001 | initial_schema | profiles, groups, memberships, invite_links, join_requests |
+| 002 | fix_rls_recursion | RLS 再帰参照の修正 |
+| 003 | events_payments | events, payment_statuses テーブル |
+| 004 | phase3_functions | 部長委譲・連続未払い判定の RPC 関数 |
+| 005 | phase4_notifications | notifications, push_subscriptions テーブル |
+| 006 | phase5_special_events | special_events, special_payment_statuses テーブル |
+| 007 | event_polls | event_polls, event_poll_options, event_poll_votes テーブル |
+| 008 | fix_profile_email_security | プロフィールのメールアドレス非公開化 |
+| 009 | get_invite_group_info | 招待リンク情報取得 RPC |
+| 010 | code_review_fixes | RLS ポリシー・関数の修正 |
+| 011 | payment_claim_memo | 支払い申告メモ（日付・場所・受取人） |
+| 012 | payment_claim_message | 支払い申告メッセージ |
+| 013 | member_badges | 学年バッジ・係バッジ（group_roles, member_roles） |
+| 014 | special_event_member_management | 特別イベントメンバー選択制・DELETE/INSERT ポリシー追加 |
+| 015 | accounting_ledger | account_entries, expense_categories テーブル（会計帳簿） |
 
 ---
 
-## セットアップ
+<details>
+<summary>セットアップ手順（開発者向け）</summary>
 
 ### 前提条件
 
@@ -111,7 +186,7 @@ cp .env.local.example .env.local
 #   VAPID_PRIVATE_KEY             — Web Push 用秘密鍵
 
 # 4. Supabase DB セットアップ
-#    SQL Editor で supabase/migrations/ 配下のファイルを 001〜014 の順に実行
+#    SQL Editor で supabase/migrations/ 配下のファイルを 001〜015 の順に実行
 
 # 5. 開発サーバー起動
 npm run dev
@@ -133,67 +208,14 @@ npx web-push generate-vapid-keys
 
 生成された公開鍵・秘密鍵を `.env.local` と Vercel 環境変数に設定します。
 
----
-
-## デプロイ
+### デプロイ
 
 1. Vercel にプロジェクトをインポート（**Root Directory: `app`**）
 2. 環境変数を設定（上記 6 つ）
 3. Supabase の URL Configuration と Redirect URLs をデプロイ先 URL に更新
 4. main ブランチへのプッシュで自動デプロイ
 
----
-
-## ディレクトリ構成
-
-```
-app/
-├── src/
-│   ├── app/
-│   │   ├── (auth)/            # 認証ページ（login, signup, reset-password）
-│   │   ├── actions/           # Server Actions（全 DB 操作）
-│   │   ├── api/               # API ルート（auth callback, icon 生成）
-│   │   ├── g/[groupId]/       # グループ内ページ
-│   │   │   ├── admin/         #   管理画面（メンバー管理, ロール管理）
-│   │   │   ├── approve/       #   支払い承認
-│   │   │   ├── dashboard/     #   会計ダッシュボード
-│   │   │   ├── events/        #   イベント詳細・作成
-│   │   │   ├── members/       #   メンバー一覧
-│   │   │   ├── notifications/ #   通知一覧
-│   │   │   ├── settings/      #   グループ設定
-│   │   │   └── special/       #   特別イベント
-│   │   ├── groups/            # グループ選択・作成
-│   │   ├── invite/            # 招待リンク参加
-│   │   └── settings/          # アカウント設定
-│   ├── components/ui/         # shadcn/ui コンポーネント
-│   └── lib/                   # Supabase クライアント, バリデーション, Web Push
-├── supabase/
-│   └── migrations/            # DB マイグレーション SQL（001〜014）
-├── public/                    # PWA アセット（manifest, icons, sw.js）
-└── docs/                      # 設計書（方針書, 基本設計書）
-```
-
----
-
-## DB マイグレーション一覧
-
-| # | ファイル | 内容 |
-|---|---------|------|
-| 001 | initial_schema | profiles, groups, memberships, invite_links, join_requests |
-| 002 | fix_rls_recursion | RLS 再帰参照の修正 |
-| 003 | events_payments | events, payment_statuses テーブル |
-| 004 | phase3_functions | 部長委譲・連続未払い判定の RPC 関数 |
-| 005 | phase4_notifications | notifications, push_subscriptions テーブル |
-| 006 | phase5_special_events | special_events, special_payment_statuses テーブル |
-| 007 | event_polls | event_polls, event_poll_options, event_poll_votes テーブル |
-| 008 | fix_profile_email_security | プロフィールのメールアドレス非公開化 |
-| 009 | get_invite_group_info | 招待リンク情報取得 RPC |
-| 010 | code_review_fixes | RLS ポリシー・関数の修正 |
-| 011 | payment_claim_memo | 支払い申告メモ（日付・場所・受取人） |
-| 012 | payment_claim_message | 支払い申告メッセージ |
-| 013 | member_badges | 学年バッジ・係バッジ（group_roles, member_roles） |
-| 014 | special_event_member_management | 特別イベントメンバー選択制・DELETE/INSERT ポリシー追加 |
-| 015 | accounting_ledger | account_entries, expense_categories テーブル（会計帳簿） |
+</details>
 
 ---
 
