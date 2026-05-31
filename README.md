@@ -6,7 +6,7 @@ Android / iOS のホーム画面に追加すれば、ネイティブアプリの
 
 > **デモサイト:** https://club-expense-management-app.vercel.app
 
-![CircleFee スマホ版デモ画面](assets/demo-mobile.jpg)
+![CircleFee スマホ版デモ画面](images/demo-mobile.jpg)
 
 > ▲ スマホ版での画面です
 
